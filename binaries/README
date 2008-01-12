@@ -1,0 +1,100 @@
+Seb/The Removers presents you his "Jaguar image converter". 
+
+This tool offers you to convert images in graphical data usable on the
+Atari Jaguar console. It is written in OCaml and uses the library
+camlimages. Thus, it should work on any machine where an OCaml
+compiler exists.
+
+The output format are RGB16, CRY16 or CLUT images (with RGB16 or CRY16
+CLUT).
+
+The input format are those offered by the camlimages library: GIF,
+JPEG, PNG, TIFF, BMP, PPM, XPM, PS. Note that on a unix system, it
+exists the Image Magick Converter that allows to manipulate dozens of
+file formats and you should be able to produce an image readable by
+this Jaguar converter.
+
+You can chose either to export an assembly file (composed of dc
+directives) or a binary file (that you can include with incbin).
+
+It is a command line tool. You can convert several files at one time.
+Here is a typical use of this converter:
+
+./converter.opt --target-dir tmp removers.bmp -cry jagware.tiff -rgb
+--no-ascii 1.gif 2.gif
+
+This will produce in the directory tmp four files: removers.s,
+jagware.s, 1.rgb and 2.rgb. The file removers.s is a source file that
+is the RGB16 conversion of removers.bmp.  The file jagware.s is a
+source file that is the CRY16 conversion of jagware.tiff.  The files
+1.rgb and 2.rgb are binary files that are the RGB16 conversion of
+1.gif and 2.gif.
+
+To have a full list of option, type:
+
+./converter.opt --help
+
+Here is a little description of common options:
+  -rgb
+   to consider the RGB16 color model
+  -cry
+   to consider the CRY16 color model
+  --assembly (or --ascii)
+   to generate an assembly file
+  --binary (or --no-ascii)
+   to generate a binary file
+  --target-dir
+   to chose the target directory
+  --clut
+   to generate a pixel map and a clut (with the current color model)
+  --no-clut
+   to generate a true color file (with the current color model)
+  --opt-clut
+   to generate a map with an optimised number of bits per pixel 
+   (only when --clut is set)
+  --no-opt-clut 
+   to generate a 8 bits per pixel map 
+   (only when --clut is set)
+  --overwrite 
+   to overwrite existing files
+  --no-overwrite 
+   to forbid overwriting of existing files
+  --15-bits
+    to use only 15 bits (the lower bit is used to indicate which model is in use)
+  --16-bits
+    to use all the 16 bits
+  --gray
+    to output only intensities (CRY model)
+  --glass
+    to output relative CRY values (CRY model)
+  --normal
+    to ouput normal CRY values (CRY model)
+  --positive
+    keep only positive coordinates of CRY vectors
+  --negative
+    keep only negative coordinates of CRY vectors
+  --both
+    keep all CRY vectors
+
+
+I would like to thank SCPCD for his little paper on RGB to CRY
+conversion and send greetings to the Jagware team, CVSD (especially GT
+Turbo), MJJ Prod, Sector One, ... and to the all Atari community.
+
+This software is distributed under the terms of the GPL license.
+
+Resources:
+----------
+OCaml - http://caml.inria.fr/ 
+camlimages library - http://pauillac.inria.fr/camlimages/ 
+
+(Google is your friend!)
+
+Compilation:
+------------
+To compile, you need OCaml and the camlimages library installed on
+your computer. Then, you might need to modify the "Makefile.am" to put
+the correct path of camlimages library. Then, launch the script
+"make_ocaml" that will produce a Makefile. You can then build a
+bytecode version by typing "make" or a native version by typing "make
+opt".
