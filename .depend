@@ -1,0 +1,2 @@
+converter.cmo: tga2cry.cmo compile_info.cmo 
+converter.cmx: tga2cry.cmx compile_info.cmx 
