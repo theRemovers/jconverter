@@ -764,6 +764,31 @@ let info_string =
   let option = "Default options: "^(get_options ()) in
     prelude^"\n"^option
 
+let do_cry_conv s = 
+  let i = ref 0 in
+  let n = String.length s in
+  let is_digit = function '0'..'9' -> true | _ -> false in
+  let val_digit c = (Char.code c) - (Char.code '0') in
+  let digits () = 
+    let v = ref 0 in
+      while !i < n && is_digit s.[!i] do
+	v := 10 * !v + (val_digit (s.[!i]));
+	incr i
+      done;
+      !v
+  in
+  let skip_comma () = 
+    if !i < n && s.[!i] = ',' then incr i
+    else failwith "ill-formed r,g,b tuple"
+  in
+  let red = digits() in
+  let _ = skip_comma() in
+  let green = digits() in
+  let _ = skip_comma() in
+  let blue = digits() in
+  let cry = cry16_of_rgb24 { r = red; g = green; b = blue } in
+    prerr_string (Format.sprintf "cry (%d,%d,%d) = 0x%04x\n" red green blue cry)
+
 let main () =
   let _ = Arg.parse ["-rgb",(Arg.Unit(fun () -> output_format := Rgb16)),"rgb16 output format";
 		     "-cry",(Arg.Unit(fun () -> output_format := Cry16)),"cry16 output format";
@@ -795,7 +820,8 @@ let main () =
 		     "--no-cut",(Arg.Clear(cut)),"do not cut image";
 		     "--cut",(Arg.String(analyse_cut_string)),"cut image at given coordinates";
 		     "--use-cry-table",(Arg.Set(use_tga2cry)),"use precalculed tga2cry conversion table to get CRY values";
-		     "--compute-cry",(Arg.Clear(use_tga2cry)),"really compute CRY values"]
+		     "--compute-cry",(Arg.Clear(use_tga2cry)),"really compute CRY values";
+		     "--cry-conv",(Arg.String(fun s -> do_cry_conv s)),"interactive cry conversion"]
 	do_file info_string
   in ()
 
