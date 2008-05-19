@@ -58,6 +58,8 @@ let gray = ref false
 
 let glass = ref false
 
+let texture = ref false
+
 let keep_positive = ref true
 let keep_negative = ref true
 
@@ -144,6 +146,7 @@ let get_cry_value (c,r,y) =
     else y
   else if !glass then 
     (((check_pos_neg (c - 8)) land 0xf) lsl 12) lor (((check_pos_neg (r - 8)) land 0xf) lsl 8) lor ((check_pos_neg (y - 0x80)) land 0xff)
+  else if !texture then ((c lsl 12) lor (r lsl 8) lor y) lxor 0x0080
   else (c lsl 12) lor (r lsl 8) lor y 
 
 let cry16_of_rgb24_compute c =
@@ -745,6 +748,7 @@ let get_options () =
     else add_option "--reduced-color";
     if !gray then add_option "--gray";
     if !glass then add_option "--glass";
+    if !texture then add_option "--texture";
     if !keep_positive && not !keep_negative then add_option "--positive";
     if not !keep_positive && !keep_negative then add_option "--negative";
     if !keep_positive && !keep_negative then add_option "--both";
@@ -809,10 +813,11 @@ let main () =
 		     "--reduced-color",(Arg.Clear(rgb24mode)),"reduced color mode";
 		     "--gray",(Arg.Set(gray)),"gray (CRY intensities)";
 		     "--glass",(Arg.Set(glass)),"glass (CRY relative)";
+		     "--texture",(Arg.Set(texture)),"texture fixed intensities (CRY)";
 		     "--positive",(Arg.Unit(fun () -> keep_negative := false; keep_positive := true)),"keep only positive delta";
 		     "--negative",(Arg.Unit(fun () -> keep_negative := true; keep_positive := false)),"keep only negative delta";
 		     "--both",(Arg.Unit(fun () -> keep_negative := true; keep_positive := true)),"keep both delta types";
-		     "--normal",(Arg.Unit(fun () -> gray := false; glass := false)),"normal CRY";
+		     "--normal",(Arg.Unit(fun () -> gray := false; glass := false; texture := false)),"normal CRY";
 		     "--overwrite",(Arg.Set(overwrite)),"overwrite existing files";
 		     "--no-overwrite",(Arg.Clear(overwrite)),"do not overwrite existing files";
 		     "--no-rotate",Arg.Clear(rotate),"do not rotate image";
