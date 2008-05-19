@@ -36,7 +36,7 @@ type output = Rgb16 | Cry16
 
 let output_format = ref Rgb16
 
-let dithering = ref true
+let dithering = ref false
 
 let clut_mode = ref false
 
