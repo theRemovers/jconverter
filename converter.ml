@@ -418,7 +418,7 @@ let phrase_width w =
     else (assert(w mod 4 = 0);w/4)
 
 let tool_info () =
-  "; Converted with 'Jaguar image converter' (version "^(Compile_info.version)^") by Seb/The Removers\n"
+  "; Converted with 'Jaguar image converter' (version "^(Version.version)^") by Seb/The Removers\n"
 
 let output_header stream src labelname w h = 
   if !ascii_output then
