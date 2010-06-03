@@ -764,7 +764,7 @@ let get_options () =
     Buffer.contents buf
 
 let info_string = 
-  let prelude = "Jaguar image converter by Seb/The Removers (version "^(Compile_info.version)^")" in
+  let prelude = "Jaguar image converter by Seb/The Removers (version "^(Version.version)^")" in
   let option = "Default options: "^(get_options ()) in
     prelude^"\n"^option
 
