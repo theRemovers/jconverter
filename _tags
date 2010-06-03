@@ -1,0 +1,3 @@
+<converter.{byte,native}>: use_camlimages, use_graphics
+<**/*.ml>: use_camlimages, use_graphics
+
