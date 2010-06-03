@@ -1,3 +1,4 @@
 <converter.{byte,native}>: use_camlimages, use_graphics
 <**/*.ml>: use_camlimages, use_graphics
+<**/cygwin1.dll>: not_hygienic
 
