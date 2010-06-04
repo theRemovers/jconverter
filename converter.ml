@@ -303,9 +303,9 @@ let rgb24_of_rgb16 n =
 
 let rgb24_of_rgb15 n = rgb24_of_rgb16 n
 
-let rgb15_of_rgb16 n = n land 0xfffe
+let rgb15_of_rgb16 n = if n = 0 then n else n lor 0x1
 
-let cry15_of_cry16 n = if n = 0 then n else n lor 0x1
+let cry15_of_cry16 n = n land 0xfffe
 
 let rgb15_of_rgb24 c = rgb15_of_rgb16 (rgb16_of_rgb24 c)
 
