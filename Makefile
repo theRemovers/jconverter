@@ -5,18 +5,18 @@ OCAMLFLAGS = -unsafe
 
 OCAMLC = ocamlc
 
-SOURCES = tga2cry.ml compile_info.ml converter.ml 
+SOURCES = tga2cry.ml version.ml converter.ml 
 RESULT  = converter
-INCDIRS = $(shell $(OCAMLC) -where)/site-lib/camlimages
+INCDIRS = $(shell $(OCAMLC) -where)/camlimages
 LIBS = ci_core ci_bmp ci_gif ci_jpeg ci_png ci_ppm ci_tiff
 
-TRASH = compile_info.ml
+TRASH = version.ml
 
-all: compile_info.ml nc
+all: version.ml nc
 
 include $(OCAMLMAKEFILE)
 
-compile_info.ml: Makefile
-	@echo "let date_of_compile=\""`date`"\";;" > compile_info.ml
-	@echo "let version=\""$(VERSION)"\";;" >> compile_info.ml
-	@echo "let build_info=\""`uname -msrn`"\";;" >> compile_info.ml
+version.ml: Makefile
+	@echo "let date_of_compile=\""`date`"\";;" > version.ml
+	@echo "let version=\""$(VERSION)"\";;" >> version.ml
+	@echo "let build_info=\""`uname -msrn`"\";;" >> version.ml
