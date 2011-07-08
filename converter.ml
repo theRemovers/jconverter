@@ -72,6 +72,10 @@ let cut_y = ref 0
 let cut_w = ref 0
 let cut_h = ref 0
 
+let sample = ref false
+let sample_w = ref 0
+let sample_h = ref 0
+
 let use_tga2cry = ref true
 
 exception CannotSplit
@@ -105,6 +109,18 @@ let analyse_cut_string s =
       cut_y := int_of_string y;
       cut_w := int_of_string w;
       cut_h := int_of_string h
+  with CannotSplit -> ()
+
+let analyse_sample_string s =
+  sample := false;
+  let s = s^"^" in
+  try
+    let w,s = split_string s 'x' isDigit in
+    let h,s = split_string s '^' isDigit in
+      if String.length s > 0 then raise CannotSplit;
+      sample := true;
+      sample_w := int_of_string w;
+      sample_h := int_of_string h
   with CannotSplit -> ()
 
 let rebuild_cut_string () =
@@ -520,10 +536,14 @@ let out_byte stream v =
     output_byte stream (v land 0xff)
 
 let get_coords img =
-  if !cut then
-    img#width,img#height,!cut_x,!cut_y,!cut_w,!cut_h
-  else
-    img#width,img#height,0,0,img#width,img#height
+  let w,h = 
+    if !sample then !sample_w, !sample_h
+    else img#width, img#height
+  in
+    if !cut then
+      w, h, !cut_x,!cut_y,!cut_w,!cut_h
+    else
+      w, h, 0, 0, w, h
 
 let do_file src =
   let img = load_image src in
@@ -541,9 +561,15 @@ let do_file src =
 	  else cry16_of_rgb24,rgb24_of_cry16
   in
   let read img w h x y black =
-    let real_read x y =
-      if (0 <= x) && (x < w) && (0 <= y) && (y < h) then img#unsafe_get x y 
-      else black
+    let real_read =
+      let fx, fy = 
+	if !sample then
+	  img#width / !sample_w, img#height / !sample_h
+	else 1, 1
+      in
+	fun x y ->
+	  if (0 <= x) && (x < w) && (0 <= y) && (y < h) then img#unsafe_get (x * fx) (y * fy) 
+	  else black
     in
       if !rotate && (not !cut) then
 	let xo = (float_of_int w) /. 2. and yo = (float_of_int h) /. 2. in
@@ -826,7 +852,10 @@ let main () =
 		     "--cut",(Arg.String(analyse_cut_string)),"cut image at given coordinates";
 		     "--use-cry-table",(Arg.Set(use_tga2cry)),"use precalculed tga2cry conversion table to get CRY values";
 		     "--compute-cry",(Arg.Clear(use_tga2cry)),"really compute CRY values";
-		     "--cry-conv",(Arg.String(fun s -> do_cry_conv s)),"interactive cry conversion"]
+		     "--cry-conv",(Arg.String(fun s -> do_cry_conv s)),"interactive cry conversion";
+		     "--sample",(Arg.String(analyse_sample_string)),"resample image at given size";
+		     "--no-sample",(Arg.Clear(sample)),"no image resampling";
+		    ]
 	do_file info_string
   in ()
 
