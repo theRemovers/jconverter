@@ -76,6 +76,8 @@ let sample = ref false
 let sample_w = ref 0
 let sample_h = ref 0
 
+let aworld = ref false
+
 let use_tga2cry = ref true
 
 exception CannotSplit
@@ -653,6 +655,10 @@ let do_file src =
 						     value := 0;
 						     while !i < (8 / !bpp_clut) do
 						       let idx = check_index (read img imgw imgh !x y 0) in
+						       let idx = 
+							 if !aworld && !bpp_clut = 8 then idx + 16 * (1 + idx / 112)
+							 else idx
+						       in
 							 value := !value lsl (!bpp_clut);
 							 value := !value lor idx;
 							 incr x;
@@ -787,6 +793,10 @@ let get_options () =
     else add_option "--no-cut";
     if !use_tga2cry then add_option "--use-cry-table"
     else add_option "--compute-cry";
+    if !sample then add_option ("--sample "^(string_of_int !sample_w)^"x"^(string_of_int !sample_h))
+    else add_option "--no-sample";
+    if !aworld then add_option "--aworld"
+    else add_option "--no-aworld";
     Buffer.contents buf
 
 let info_string = 
@@ -855,6 +865,8 @@ let main () =
 		     "--cry-conv",(Arg.String(fun s -> do_cry_conv s)),"interactive cry conversion";
 		     "--sample",(Arg.String(analyse_sample_string)),"resample image at given size";
 		     "--no-sample",(Arg.Clear(sample)),"no image resampling";
+		     "--aworld",(Arg.Set(aworld)),"enable Another World mode (undocumented)";
+		     "--no-aworld",(Arg.Clear(aworld)),"disable Another World mode (undocumented)";     
 		    ]
 	do_file info_string
   in ()
