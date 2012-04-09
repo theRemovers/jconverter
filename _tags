@@ -1,4 +1,4 @@
-<converter.{byte,native}>: use_camlimages, use_graphics
-<**/*.ml>: use_camlimages, use_graphics
+<converter.{byte,native}>: package(camlimages), package(graphics)
+<**/*.ml>: package(camlimages), package(graphics)
 <**/cygwin1.dll>: not_hygienic
 

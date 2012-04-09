@@ -19,7 +19,6 @@ let make_version _ _ =
 let () = dispatch begin function
   | After_rules ->
       rule "version.ml" ~prod: "version.ml" make_version;
-      ocaml_lib ~extern:true ~dir:"+camlimages" "camlimages";
   | _ -> ()
 end
 
