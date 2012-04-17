@@ -92,9 +92,11 @@ camlimages library - http://pauillac.inria.fr/camlimages/
 
 Compilation:
 ------------
-To compile, you need OCaml and the camlimages library installed on
-your computer. Then, you might need to modify the "Makefile.am" to put
-the correct path of camlimages library. Then, launch the script
-"make_ocaml" that will produce a Makefile. You can then build a
-bytecode version by typing "make" or a native version by typing "make
-opt".
+To compile, you need:
+- ocaml
+- ocamlfind
+- the camlimages library
+
+Then, to build, simply type
+
+ocamlbuild -use-ocamlfind converter.native
