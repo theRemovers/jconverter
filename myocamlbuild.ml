@@ -2,7 +2,7 @@ open Ocamlbuild_plugin
 open Command
 open Unix
 
-let version = "0.1.8"
+let version = "0.1.9"
 
 let time =
   let tm = Unix.gmtime (Unix.time ()) in
