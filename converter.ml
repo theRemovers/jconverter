@@ -50,6 +50,8 @@ let opt_clut = ref false
 
 let bpp_clut = ref 8
 
+let force_bpp = ref None
+
 let mode15bit = ref false
 
 let rgb24mode = ref false
@@ -624,24 +626,23 @@ let do_file src =
 		assert (idx land mask = idx);
 		idx
 	      in
+	      let set_bpp_and_mask i = 
+	        match i with
+                | None | Some 256 -> check_mask 0xff
+                | Some 2 -> bpp_clut := 1; check_mask 0x1
+                | Some 4 -> bpp_clut := 2; check_mask 0x3
+                | Some 16 -> bpp_clut := 4; check_mask 0xf
+                | _ -> failwith "invalid bpp"
+              in
+              let bpp = 
 		if !opt_clut then
-		  if nb_colors <= 2 then
-		    begin
-		      bpp_clut := 1;
-		      check_mask 0x1
-		    end
-		  else if nb_colors <= 4 then
-		    begin
-		      bpp_clut := 2;
-		      check_mask 0x3
-		    end
-		  else if nb_colors <= 16 then
-		    begin
-		      bpp_clut := 4;
-		      check_mask 0xf
-		    end
-		  else check_mask 0xff
-		else check_mask 0xff
+		  if nb_colors <= 2 then Some 2
+		  else if nb_colors <= 4 then Some 4
+		  else if nb_colors <= 16 then Some 16
+		  else Some 256
+		else !force_bpp
+              in
+	      set_bpp_and_mask bpp
 	    in
 	    let w' = adjust_width w in
 	    let paldst = name_clut basename in
@@ -774,6 +775,10 @@ let get_options () =
     else add_option "--no-clut";
     if !opt_clut then add_option "--opt-clut"
     else add_option "--no-opt-clut";
+    begin match !force_bpp with 
+    | None -> add_option "--no-force-bpp" 
+    | Some i -> add_option ("--force-bpp "^(string_of_int i))
+    end;
     if !mode15bit then add_option "--15-bits"
     else add_option "--16-bits";
     if !rgb24mode then add_option "--true-color"
@@ -843,6 +848,8 @@ let main () =
 		     "--no-clut",(Arg.Clear(clut_mode)),"true color mode";
 		     "--opt-clut",(Arg.Set(opt_clut)),"optimise low resolution images";
 		     "--no-opt-clut",(Arg.Clear(opt_clut)),"optimise low resolution images";
+		     "--force-bpp",(Arg.Int(fun i -> force_bpp := Some i)),"force bpp in clut mode";
+		     "--no-force-bpp",(Arg.Int(fun _ -> force_bpp := None)),"do not force bpp in clut mode";
 		     "--15-bits",(Arg.Set(mode15bit)),"15 bits mode";
 		     "--16-bits",(Arg.Clear(mode15bit)),"16 bits mode";
 		     "--true-color",(Arg.Set(rgb24mode)),"true color mode";
