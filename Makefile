@@ -1,6 +1,6 @@
 OCAMLMAKEFILE = OCamlMakefile
 
-OCAMLNLDFLAGS = -ccopt -static
+#OCAMLNLDFLAGS = -ccopt -static
 OCAMLFLAGS = -unsafe
 
 OCAMLC = ocamlc
@@ -9,8 +9,8 @@ VERSION = version.ml
 
 SOURCES = tga2cry.ml $(VERSION) converter.ml 
 RESULT  = converter
-INCDIRS = $(shell $(OCAMLC) -where)/camlimages
-LIBS = ci_core ci_bmp ci_gif ci_jpeg ci_png ci_ppm ci_tiff
+INCDIRS = $(shell $(OCAMLC) -where)/site-lib/camlimages
+LIBS = unix graphics camlimages
 
 TRASH = $(VERSION)
 
