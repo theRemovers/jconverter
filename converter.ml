@@ -568,11 +568,11 @@ let do_file src =
     let real_read =
       let fx, fy = 
 	if !sample then
-	  img#width / !sample_w, img#height / !sample_h
-	else 1, 1
+	  (float_of_int img#width) /. (float_of_int !sample_w), (float_of_int img#height) /. (float_of_int !sample_h)
+	else 1., 1.
       in
 	fun x y ->
-	  if (0 <= x) && (x < w) && (0 <= y) && (y < h) then img#unsafe_get (x * fx) (y * fy) 
+	  if (0 <= x) && (x < w) && (0 <= y) && (y < h) then img#unsafe_get (int_of_float ((float_of_int x) *. fx)) (int_of_float ((float_of_int y) *. fy))
 	  else black
     in
       if !rotate && (not !cut) then
