@@ -1,24 +1,44 @@
-OCAMLMAKEFILE = OCamlMakefile
+OCAMLOPT=ocamlopt
+OCAMLC=ocamlc
+
+INCL=$(shell $(OCAMLC) -where)/site-lib/camlimages
 
 #OCAMLNLDFLAGS = -ccopt -static
 OCAMLFLAGS = -unsafe
 
-OCAMLC = ocamlc
+VERSION=version.ml
 
-VERSION = version.ml
+SRCML=tga2cry.ml $(VERSION) converter.ml 
+PROJECT=converter
 
-SOURCES = tga2cry.ml $(VERSION) converter.ml 
-RESULT  = converter
-INCDIRS = $(shell $(OCAMLC) -where)/site-lib/camlimages
-LIBS = unix graphics camlimages
+LIBS=unix graphics camlimages
 
-TRASH = $(VERSION)
+BYTELIBS=$(LIBS:=.cma)
+NATIVELIBS=$(LIBS:=.cmxa)
 
-all: $(VERSION) nc
+CMO=$(SRCML:.ml=.cmo)
+CMX=$(SRCML:.ml=.cmx)
 
-include $(OCAMLMAKEFILE)
+all: $(VERSION) $(PROJECT).native $(PROJECT).byte
+
+.PHONY: all clean
+
+$(PROJECT).native: $(CMX)
+	$(OCAMLOPT) -I $(INCL) -o $@ $(NATIVELIBS) $^
+
+$(PROJECT).byte: $(CMO)
+	$(OCAMLC) -I $(INCL) -o $@ $(BYTELIBS) $^
 
 $(VERSION): Makefile
 	@echo "let date_of_compile=\""`date`"\";;" > $@
 	@echo "let version=\""$(VERSION)"\";;" >> $@
 	@echo "let build_info=\""`uname -msrn`"\";;" >> $@
+
+%.cmo: %.ml
+	$(OCAMLC) -I $(INCL) -c $(OCAMLFLAGS) -o $@ $<
+
+%.cmx: %.ml
+	$(OCAMLOPT) -I $(INCL) -c $(OCAMLFLAGS) -o $@ $<
+
+clean:
+	rm -f $(CMO) $(CMX) $(VERSION)
