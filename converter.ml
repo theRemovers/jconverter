@@ -368,8 +368,8 @@ let load_image src =
     img
 
 let name_label basename =
-  if !clut_mode then basename^"_map"
-  else basename^"_gfx"
+  if !clut_mode then "_"^basename^"Map"
+  else "_"^basename^"Gfx"
 
 let name_dst basename =
   let basename = basename^(rebuild_cut_string ()) in
@@ -383,7 +383,7 @@ let name_dst basename =
 	  | Rgb16 -> basename^".rgb"
 	  | Cry16 -> basename^".cry"
 
-let name_label_clut basename = basename^"_pal"
+let name_label_clut basename = "_"^basename^"Pal"
 
 let name_clut basename =
   if !ascii_output then
@@ -440,13 +440,18 @@ let phrase_width w =
 let tool_info () =
   "; Converted with 'Jaguar image converter' (version "^(Version.version)^") by Seb/The Removers\n"
 
+let output_label stream src labelname = 
+  output_string stream (tool_info ());
+  output_string stream "\t.data\n";
+  output_string stream ("\t.globl\t"^labelname^"\n");
+  output_string stream "\t.phrase\n";
+  output_string stream (labelname^":\n");
+  output_string stream ("; "^(Filename.basename src)^"\n")
+
 let output_header stream src labelname w h = 
   if !ascii_output then
     begin
-      output_string stream (tool_info ());
-      output_string stream "\t.phrase\n";
-      output_string stream (labelname^":\n");
-      output_string stream ("; "^(Filename.basename src)^"\n");
+      output_label stream src labelname;
       output_string stream ("; "^(string_of_int w)^" x "^(string_of_int h)^"\n");
       output_string stream ("; "^(description_of_format ())^"\n");
       output_string stream ("; "^(string_of_int (phrase_width w))^" phrases per line\n");
@@ -460,10 +465,7 @@ let description_of_pal () =
 let output_clut_header stream src labelname nb = 
   if !ascii_output then
     begin
-      output_string stream (tool_info ());
-      output_string stream "\t.phrase\n";
-      output_string stream (labelname^":\n");
-      output_string stream ("; "^(Filename.basename src)^"\n");
+      output_label stream src labelname;
       output_string stream ("; "^(string_of_int nb)^" colors\n");
       output_string stream ("; "^(description_of_pal ())^"\n")
     end
