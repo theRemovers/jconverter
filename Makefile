@@ -6,9 +6,9 @@ INCL=$(shell $(OCAMLC) -where)/site-lib/camlimages
 #OCAMLNLDFLAGS = -ccopt -static
 OCAMLFLAGS = -unsafe
 
-VERSION=version.ml
+VERSION=0.1.9
 
-SRCML=tga2cry.ml $(VERSION) converter.ml 
+SRCML=tga2cry.ml version.ml converter.ml 
 PROJECT=converter
 
 LIBS=unix graphics camlimages
@@ -19,7 +19,7 @@ NATIVELIBS=$(LIBS:=.cmxa)
 CMO=$(SRCML:.ml=.cmo)
 CMX=$(SRCML:.ml=.cmx)
 
-all: $(VERSION) $(PROJECT).native $(PROJECT).byte
+all: $(PROJECT).native $(PROJECT).byte
 
 .PHONY: all clean
 
@@ -29,7 +29,7 @@ $(PROJECT).native: $(CMX)
 $(PROJECT).byte: $(CMO)
 	$(OCAMLC) -I $(INCL) -o $@ $(BYTELIBS) $^
 
-$(VERSION): Makefile
+version.ml: Makefile
 	@echo "let date_of_compile=\""`date`"\";;" > $@
 	@echo "let version=\""$(VERSION)"\";;" >> $@
 	@echo "let build_info=\""`uname -msrn`"\";;" >> $@
@@ -41,4 +41,4 @@ $(VERSION): Makefile
 	$(OCAMLOPT) -I $(INCL) -c $(OCAMLFLAGS) -o $@ $<
 
 clean:
-	rm -f $(CMO) $(CMX) $(VERSION)
+	rm -f $(CMO) $(CMX) version.ml
