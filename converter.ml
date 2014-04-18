@@ -82,6 +82,8 @@ let aworld = ref false
 
 let use_tga2cry = ref true
 
+let header = ref false
+
 exception CannotSplit
 
 let split_string s c p =
@@ -436,36 +438,53 @@ let phrase_width w =
       (assert(q1 mod 8 = 0);q1/8)
     else (assert(w mod 4 = 0);w/4)
 
+let exponent_mantissa w = 
+  assert (w != 0);
+  let width = ref (Int32.of_int w) in
+  let nb = ref 31 in
+  while Int32.logand !width 0x80000000l = 0l do
+    width := Int32.shift_left !width 1;
+    decr nb
+  done;
+  width := Int32.shift_left !width 1;
+  let exp = Int32.logand 0xfl (Int32.of_int !nb) in
+  let mant = Int32.shift_right_logical !width 30 in
+  let blitter_width = 
+    let m = 1 lsl 2 lor (Int32.to_int mant) in
+    let e = Int32.to_int exp in
+    (m lsl e) lsr 2
+  in
+  exp, mant, blitter_width
+
+let gen_flags w = 
+  let depth = 
+    if !rgb24mode then 5
+    else if !clut_mode then begin
+      match !bpp_clut with
+      | 1 -> 0
+      | 2 -> 1
+      | 4 -> 2
+      | 8 -> 3
+      | _ -> assert false
+    end else 4
+  in
+  let exp, mant, blitter_width = exponent_mantissa w in
+  Int32.logor
+    (Int32.logor 
+       (Int32.shift_left exp 11) 
+       (Int32.shift_left mant 9))
+    (Int32.shift_left (Int32.of_int depth) 3), depth, blitter_width
+
+let long_of_int32 x = 
+  Int32.to_int (Int32.logand 0xffffl (Int32.shift_right x 16)), Int32.to_int (Int32.logand 0xffffl x)
+
 let tool_info () =
   "; Converted with 'Jaguar image converter' (version "^(Version.version)^") by Seb/The Removers\n"
-
-let output_label stream src labelname =
-  output_string stream (tool_info ());
-  output_string stream "\t.data\n";
-  output_string stream ("\t.globl\t"^labelname^"\n");
-  output_string stream "\t.phrase\n";
-  output_string stream (labelname^":\n");
-  output_string stream ("; "^(Filename.basename src)^"\n")
-
-let output_header stream src labelname w h =
-  if !ascii_output then begin
-    output_label stream src labelname;
-    output_string stream ("; "^(string_of_int w)^" x "^(string_of_int h)^"\n");
-    output_string stream ("; "^(description_of_format ())^"\n");
-    output_string stream ("; "^(string_of_int (phrase_width w))^" phrases per line\n");
-  end
 
 let description_of_pal () =
   match !output_format with
   | Rgb16 -> "CLUT RGB "^(if !mode15bit then "15" else "16")
   | Cry16 -> "CLUT CRY "^(if !mode15bit then "15" else "16")
-
-let output_clut_header stream src labelname nb =
-  if !ascii_output then begin
-    output_label stream src labelname;
-    output_string stream ("; "^(string_of_int nb)^" colors\n");
-    output_string stream ("; "^(description_of_pal ())^"\n")
-  end
 
 let safe_open_out s =
   if !overwrite then
@@ -536,6 +555,49 @@ let out_byte stream v =
     output_ascii_byte stream v
   else
     output_byte stream (v land 0xff)
+
+let output_label stream src labelname =
+  output_string stream (tool_info ());
+  output_string stream "\t.data\n";
+  output_string stream (Format.sprintf "\t.globl\t%s\n" labelname);
+  output_string stream "\t.phrase\n";
+  output_string stream (Format.sprintf "%s:\n" labelname);
+  output_string stream (Format.sprintf "; %s\n" (Filename.basename src))
+
+let output_header stream src labelname w h =
+  let check_blitter_width blitter_width = 
+    if blitter_width <> w then begin
+      prerr_string (Format.sprintf "invalid blitter width: %d != %d" blitter_width w);
+      prerr_newline()
+    end
+  in
+  if !ascii_output then begin
+    output_label stream src labelname;
+    output_string stream (Format.sprintf "; %d x %d\n" w h);
+    output_string stream ("; "^(description_of_format ())^"\n");
+    output_string stream (Format.sprintf "; %d phrases per line\n" (phrase_width w));
+    if !header then begin
+      output_string stream (Format.sprintf "\tdc.w\t%d, %d\n" h w);
+      let flags, depth, blitter_width = gen_flags w in
+      check_blitter_width blitter_width;
+      output_string stream (Format.sprintf "\tdc.l\t$%08lX\t; PITCH1|PIXEL%d|WID%d\n" flags (1 lsl depth) blitter_width);
+    end
+  end else begin
+    if !header then begin
+      output_word stream h;
+      output_word stream w;
+      let flags, _, blitter_width = gen_flags w in
+      check_blitter_width blitter_width;
+      output_long stream (long_of_int32 flags);
+    end
+  end
+
+let output_clut_header stream src labelname nb =
+  if !ascii_output then begin
+    output_label stream src labelname;
+    output_string stream ("; "^(string_of_int nb)^" colors\n");
+    output_string stream ("; "^(description_of_pal ())^"\n")
+  end
 
 let get_coords img =
   let w,h =
@@ -792,6 +854,8 @@ let get_options () =
   else add_option "--no-sample";
   if !aworld then add_option "--aworld"
   else add_option "--no-aworld";
+  if !header then add_option "--header"
+  else add_option "--no-header";
   Buffer.contents buf
 
 let info_string =
@@ -825,45 +889,47 @@ let do_cry_conv s =
   prerr_string (Format.sprintf "cry (%d,%d,%d) = 0x%04x\n" red green blue cry)
 
 let main () =
-  let _ = Arg.parse ["-rgb",(Arg.Unit(fun () -> output_format := Rgb16)),"rgb16 output format";
-		     "-cry",(Arg.Unit(fun () -> output_format := Cry16)),"cry16 output format";
-		     "--dithering",(Arg.Set(dithering)),"enable dithering";
-		     "--no-dithering",(Arg.Clear(dithering)),"disable dithering";
-		     "--ascii",(Arg.Set(ascii_output)),"source output (same as --assembly)";
-		     "--assembly",(Arg.Set(ascii_output)),"assembly file";
-		     "--no-ascii",(Arg.Clear(ascii_output)),"data output (same as --binary)";
-		     "--binary",(Arg.Clear(ascii_output)),"binary file";
-		     "--target-dir",(Arg.Set_string(target_dir)),"set target directory";
-		     "--clut",(Arg.Set(clut_mode)),"clut mode";
-		     "--no-clut",(Arg.Clear(clut_mode)),"true color mode";
-		     "--opt-clut",(Arg.Set(opt_clut)),"optimise low resolution images";
-		     "--no-opt-clut",(Arg.Clear(opt_clut)),"optimise low resolution images";
-		     "--force-bpp",(Arg.Int(fun i -> force_bpp := Some i)),"force bpp in clut mode";
-		     "--no-force-bpp",(Arg.Int(fun _ -> force_bpp := None)),"do not force bpp in clut mode";
-		     "--15-bits",(Arg.Set(mode15bit)),"15 bits mode";
-		     "--16-bits",(Arg.Clear(mode15bit)),"16 bits mode";
-		     "--true-color",(Arg.Set(rgb24mode)),"true color mode";
-		     "--reduced-color",(Arg.Clear(rgb24mode)),"reduced color mode";
-		     "--gray",(Arg.Set(gray)),"gray (CRY intensities)";
-		     "--glass",(Arg.Set(glass)),"glass (CRY relative)";
-		     "--texture",(Arg.Set(texture)),"texture fixed intensities (CRY)";
-		     "--positive",(Arg.Unit(fun () -> keep_negative := false; keep_positive := true)),"keep only positive delta";
-		     "--negative",(Arg.Unit(fun () -> keep_negative := true; keep_positive := false)),"keep only negative delta";
-		     "--both",(Arg.Unit(fun () -> keep_negative := true; keep_positive := true)),"keep both delta types";
-		     "--normal",(Arg.Unit(fun () -> gray := false; glass := false; texture := false)),"normal CRY";
-		     "--overwrite",(Arg.Set(overwrite)),"overwrite existing files";
-		     "--no-overwrite",(Arg.Clear(overwrite)),"do not overwrite existing files";
+  let _ = Arg.parse ["-rgb",Arg.Unit(fun () -> output_format := Rgb16),"rgb16 output format";
+		     "-cry",Arg.Unit(fun () -> output_format := Cry16),"cry16 output format";
+		     "--dithering",Arg.Set(dithering),"enable dithering";
+		     "--no-dithering",Arg.Clear(dithering),"disable dithering";
+		     "--ascii",Arg.Set(ascii_output),"source output (same as --assembly)";
+		     "--assembly",Arg.Set(ascii_output),"assembly file";
+		     "--no-ascii",Arg.Clear(ascii_output),"data output (same as --binary)";
+		     "--binary",Arg.Clear(ascii_output),"binary file";
+		     "--target-dir",Arg.Set_string(target_dir),"set target directory";
+		     "--clut",Arg.Set(clut_mode),"clut mode";
+		     "--no-clut",Arg.Clear(clut_mode),"true color mode";
+		     "--opt-clut",Arg.Set(opt_clut),"optimise low resolution images";
+		     "--no-opt-clut",Arg.Clear(opt_clut),"optimise low resolution images";
+		     "--force-bpp",Arg.Int(fun i -> force_bpp := Some i),"force bpp in clut mode";
+		     "--no-force-bpp",Arg.Int(fun _ -> force_bpp := None),"do not force bpp in clut mode";
+		     "--15-bits",Arg.Set(mode15bit),"15 bits mode";
+		     "--16-bits",Arg.Clear(mode15bit),"16 bits mode";
+		     "--true-color",Arg.Set(rgb24mode),"true color mode";
+		     "--reduced-color",Arg.Clear(rgb24mode),"reduced color mode";
+		     "--gray",Arg.Set(gray),"gray (CRY intensities)";
+		     "--glass",Arg.Set(glass),"glass (CRY relative)";
+		     "--texture",Arg.Set(texture),"texture fixed intensities (CRY)";
+		     "--positive",Arg.Unit(fun () -> keep_negative := false; keep_positive := true),"keep only positive delta";
+		     "--negative",Arg.Unit(fun () -> keep_negative := true; keep_positive := false),"keep only negative delta";
+		     "--both",Arg.Unit(fun () -> keep_negative := true; keep_positive := true),"keep both delta types";
+		     "--normal",Arg.Unit(fun () -> gray := false; glass := false; texture := false),"normal CRY";
+		     "--overwrite",Arg.Set(overwrite),"overwrite existing files";
+		     "--no-overwrite",Arg.Clear(overwrite),"do not overwrite existing files";
 		     "--no-rotate",Arg.Clear(rotate),"do not rotate image";
 		     "--rotate",Arg.Int(fun n -> rotate := true; rotate_angle := n),"rotate image of ? degrees";
-		     "--no-cut",(Arg.Clear(cut)),"do not cut image";
-		     "--cut",(Arg.String(analyse_cut_string)),"cut image at given coordinates";
-		     "--use-cry-table",(Arg.Set(use_tga2cry)),"use precalculed tga2cry conversion table to get CRY values";
-		     "--compute-cry",(Arg.Clear(use_tga2cry)),"really compute CRY values";
-		     "--cry-conv",(Arg.String(fun s -> do_cry_conv s)),"interactive cry conversion";
-		     "--sample",(Arg.String(analyse_sample_string)),"resample image at given size";
-		     "--no-sample",(Arg.Clear(sample)),"no image resampling";
-		     "--aworld",(Arg.Set(aworld)),"enable Another World mode (undocumented)";
-		     "--no-aworld",(Arg.Clear(aworld)),"disable Another World mode (undocumented)";
+		     "--no-cut",Arg.Clear(cut),"do not cut image";
+		     "--cut",Arg.String(analyse_cut_string),"cut image at given coordinates";
+		     "--use-cry-table",Arg.Set(use_tga2cry),"use precalculed tga2cry conversion table to get CRY values";
+		     "--compute-cry",Arg.Clear(use_tga2cry),"really compute CRY values";
+		     "--cry-conv",Arg.String(fun s -> do_cry_conv s),"interactive cry conversion";
+		     "--sample",Arg.String(analyse_sample_string),"resample image at given size";
+		     "--no-sample",Arg.Clear(sample),"no image resampling";
+		     "--aworld",Arg.Set(aworld),"enable Another World mode (undocumented)";
+		     "--no-aworld",Arg.Clear(aworld),"disable Another World mode (undocumented)";
+		     "--header",Arg.Set(header),"emit header for bitmap";
+		     "--no-header",Arg.Clear(header),"do not emit header for bitmap";
 		    ]
     do_file info_string
   in ()
