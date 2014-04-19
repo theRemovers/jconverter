@@ -6,7 +6,7 @@ INCL=$(shell $(OCAMLC) -where)/site-lib/camlimages
 #OCAMLNLDFLAGS = -ccopt -static
 OCAMLFLAGS = -unsafe
 
-VERSION=0.1.9
+VERSION=0.1.10
 
 SRCML=tga2cry.ml version.ml converter.ml 
 PROJECT=converter
