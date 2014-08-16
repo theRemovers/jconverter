@@ -1,7 +1,7 @@
 OCAMLOPT=ocamlopt
 OCAMLC=ocamlc
 
-INCL=$(shell $(OCAMLC) -where)/site-lib/camlimages
+INCL=-I $(shell $(OCAMLC) -where)/site-lib/camlimages
 
 #OCAMLNLDFLAGS = -ccopt -static
 OCAMLFLAGS = -unsafe
@@ -26,10 +26,10 @@ all: $(PROJECT).native $(PROJECT).byte
 .PHONY: all clean dist
 
 $(PROJECT).native: $(CMX)
-	$(OCAMLOPT) -I $(INCL) -o $@ $(NATIVELIBS) $^
+	$(OCAMLOPT) $(INCL) -o $@ $(NATIVELIBS) $^
 
 $(PROJECT).byte: $(CMO)
-	$(OCAMLC) -I $(INCL) -o $@ $(BYTELIBS) $^
+	$(OCAMLC) $(INCL) -o $@ $(BYTELIBS) $^
 
 version.ml: Makefile
 	@echo "let date_of_compile=\""`date`"\";;" > $@
@@ -43,10 +43,10 @@ dist: $(SRCML) $(EXTRA)
 	rm -rf $(PROJECT)
 
 %.cmo: %.ml
-	$(OCAMLC) -I $(INCL) -c $(OCAMLFLAGS) -o $@ $<
+	$(OCAMLC) $(INCL) -c $(OCAMLFLAGS) -o $@ $<
 
 %.cmx: %.ml
-	$(OCAMLOPT) -I $(INCL) -c $(OCAMLFLAGS) -o $@ $<
+	$(OCAMLOPT) $(INCL) -c $(OCAMLFLAGS) -o $@ $<
 
 clean:
 	rm -f $(CMO) $(CMX) version.ml
