@@ -1,7 +1,7 @@
 OCAMLOPT=ocamlopt
 OCAMLC=ocamlc
 
-INCL=-I $(shell $(OCAMLC) -where)/site-lib/camlimages
+INCL=-I $(shell $(OCAMLC) -where)/../../lib/camlimages
 
 #OCAMLNLDFLAGS = -ccopt -static
 OCAMLFLAGS = -unsafe
@@ -13,7 +13,7 @@ PROJECT=converter
 
 EXTRA=README Makefile
 
-LIBS=unix graphics camlimages
+LIBS=unix graphics camlimages_core
 
 BYTELIBS=$(LIBS:=.cma)
 NATIVELIBS=$(LIBS:=.cmxa)
