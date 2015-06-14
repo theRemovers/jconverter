@@ -49,4 +49,4 @@ dist: $(SRCML) $(EXTRA)
 	$(OCAMLOPT) $(INCL) -c $(OCAMLFLAGS) -o $@ $<
 
 clean:
-	rm -f $(CMO) $(CMX) version.ml
+	rm -f version.ml *.cmi *.cmo *.o *.cmx
