@@ -13,7 +13,7 @@ PROJECT=converter
 
 EXTRA=README Makefile
 
-LIBS=unix graphics camlimages_core
+LIBS=unix graphics camlimages_core camlimages_all_formats
 
 BYTELIBS=$(LIBS:=.cma)
 NATIVELIBS=$(LIBS:=.cmxa)
@@ -26,10 +26,10 @@ all: $(PROJECT).native $(PROJECT).byte
 .PHONY: all clean dist
 
 $(PROJECT).native: $(CMX)
-	$(OCAMLOPT) $(INCL) -o $@ $(NATIVELIBS) $^
+	$(OCAMLOPT) -linkall $(INCL) -o $@ $(NATIVELIBS) $^
 
 $(PROJECT).byte: $(CMO)
-	$(OCAMLC) $(INCL) -o $@ $(BYTELIBS) $^
+	$(OCAMLC) -linkall $(INCL) -o $@ $(BYTELIBS) $^
 
 version.ml: Makefile
 	@echo "let date_of_compile=\""`date`"\";;" > $@
