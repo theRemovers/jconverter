@@ -1,7 +1,7 @@
 OCAMLOPT=ocamlopt
 OCAMLC=ocamlc
 
-INCL=-I $(shell $(OCAMLC) -where)/../../lib/camlimages
+INCL=-I $(shell $(OCAMLC) -where)/camlimages
 
 #OCAMLNLDFLAGS = -ccopt -static
 OCAMLFLAGS = -unsafe
