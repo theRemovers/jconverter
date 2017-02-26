@@ -158,9 +158,9 @@ let round x = int_of_float (x +. 0.5)
 let check_pos_neg x =
   if !keep_positive && !keep_negative then x
   else
-    if !keep_positive then max x 0
-    else if !keep_negative then min x 0
-    else 0
+  if !keep_positive then max x 0
+  else if !keep_negative then min x 0
+  else 0
 
 let get_cry_value (c,r,y) =
   if !gray then
@@ -350,19 +350,19 @@ let cry_attribute () =
     if !glass then " (gray & glass)"
     else " (gray)"
   else
-    if !glass then " (glass)"
-    else ""
+  if !glass then " (glass)"
+  else ""
 
 let description_of_format () =
   if !rgb24mode then
     "RGB 24 bits"
   else
-    if !clut_mode then
-      "Pixel map ("^(string_of_int !bpp_clut)^" bits per pixel)"
-    else
-      match !output_format with
-      | Rgb16 -> "Jaguar RGB "^(if !mode15bit then "15" else "16")
-      | Cry16 -> "Jaguar CRY "^(if !mode15bit then "15" else "16")^(cry_attribute())
+  if !clut_mode then
+    "Pixel map ("^(string_of_int !bpp_clut)^" bits per pixel)"
+  else
+    match !output_format with
+    | Rgb16 -> "Jaguar RGB "^(if !mode15bit then "15" else "16")
+    | Cry16 -> "Jaguar CRY "^(if !mode15bit then "15" else "16")^(cry_attribute())
 
 let load_image src =
   prerr_string "Loading file ";prerr_string src;prerr_newline();
@@ -377,13 +377,13 @@ let name_dst basename =
   let basename = basename^(rebuild_cut_string ()) in
   if !ascii_output then basename^".s"
   else
-    if !rgb24mode then basename^".rgb24"
-    else
-      if !clut_mode then basename^".map"
-      else
-	match !output_format with
-	| Rgb16 -> basename^".rgb"
-	| Cry16 -> basename^".cry"
+  if !rgb24mode then basename^".rgb24"
+  else
+  if !clut_mode then basename^".map"
+  else
+    match !output_format with
+    | Rgb16 -> basename^".rgb"
+    | Cry16 -> basename^".cry"
 
 let name_label_clut basename = "_"^basename^"Pal"
 
@@ -402,19 +402,19 @@ let adjust_width w =
     if !rgb24mode then
       (((w*4)+7)/8)*2
     else
-      if !clut_mode then
-	let q1 = w/(8 / !bpp_clut) in
-	let q1 =
-	  if w mod (8 / !bpp_clut) = 0 then q1
-	  else q1+1
-	in
-	let q = q1 / 8 in
-	let q =
-	  if q1 mod 8 = 0 then q
-	  else q+1
-	in
-	q * 8 * (8 / !bpp_clut)
-      else  (((w*2)+7)/8)*4
+    if !clut_mode then
+      let q1 = w/(8 / !bpp_clut) in
+      let q1 =
+	if w mod (8 / !bpp_clut) = 0 then q1
+	else q1+1
+      in
+      let q = q1 / 8 in
+      let q =
+	if q1 mod 8 = 0 then q
+	else q+1
+      in
+      q * 8 * (8 / !bpp_clut)
+    else  (((w*2)+7)/8)*4
   in
   if w' <> w then begin
     prerr_string "extending width from ";
@@ -429,16 +429,16 @@ let phrase_width w =
   if !rgb24mode then
     (assert (w mod 2 = 0);w/2)
   else
-    if !clut_mode then
-      let q1 = w/(8 / !bpp_clut) in
-      let q1 =
-	if w mod (8 / !bpp_clut) = 0 then q1
-	else q1+1
-      in
-      (assert(q1 mod 8 = 0);q1/8)
-    else (assert(w mod 4 = 0);w/4)
+  if !clut_mode then
+    let q1 = w/(8 / !bpp_clut) in
+    let q1 =
+      if w mod (8 / !bpp_clut) = 0 then q1
+      else q1+1
+    in
+    (assert(q1 mod 8 = 0);q1/8)
+  else (assert(w mod 4 = 0);w/4)
 
-let exponent_mantissa w = 
+let exponent_mantissa w =
   assert (w != 0);
   let width = ref (Int32.of_int w) in
   let nb = ref 31 in
@@ -449,15 +449,15 @@ let exponent_mantissa w =
   width := Int32.shift_left !width 1;
   let exp = Int32.logand 0xfl (Int32.of_int !nb) in
   let mant = Int32.shift_right_logical !width 30 in
-  let blitter_width = 
+  let blitter_width =
     let m = 1 lsl 2 lor (Int32.to_int mant) in
     let e = Int32.to_int exp in
     (m lsl e) lsr 2
   in
   exp, mant, blitter_width
 
-let gen_flags w = 
-  let depth = 
+let gen_flags w =
+  let depth =
     if !rgb24mode then 5
     else if !clut_mode then begin
       match !bpp_clut with
@@ -470,12 +470,12 @@ let gen_flags w =
   in
   let exp, mant, blitter_width = exponent_mantissa w in
   Int32.logor
-    (Int32.logor 
-       (Int32.shift_left exp 11) 
+    (Int32.logor
+       (Int32.shift_left exp 11)
        (Int32.shift_left mant 9))
     (Int32.shift_left (Int32.of_int depth) 3), depth, blitter_width
 
-let long_of_int32 x = 
+let long_of_int32 x =
   Int32.to_int (Int32.logand 0xffffl (Int32.shift_right x 16)), Int32.to_int (Int32.logand 0xffffl x)
 
 let tool_info () =
@@ -565,7 +565,7 @@ let output_label stream src labelname =
   output_string stream (Format.sprintf "; %s\n" (Filename.basename src))
 
 let output_header stream src labelname w h =
-  let check_blitter_width blitter_width = 
+  let check_blitter_width blitter_width =
     if blitter_width <> w then begin
       prerr_string (Format.sprintf "invalid blitter width: %d != %d" blitter_width w);
       prerr_newline()
@@ -651,23 +651,23 @@ let do_file src =
   in
   if !rgb24mode then begin
     let img = rgb24 (
-      match OImages.tag img with
-      | Rgb24(_) -> img
-      | Index8(img) -> img#to_rgb24#coerce
-      | Index16(img) -> img#to_rgb24#coerce
-      | _ -> failwith "not supported")
+        match OImages.tag img with
+        | Rgb24(_) -> img
+        | Index8(img) -> img#to_rgb24#coerce
+        | Index16(img) -> img#to_rgb24#coerce
+        | _ -> failwith "not supported")
     in
     let imgw,imgh,bx,by,w,h = get_coords img in
     let w' = adjust_width w in
     write_out ((!target_dir)^dst) (fun stream ->
-      output_header stream src labelname w' h;
-      for y = by to by+h-1 do
-	for x = bx to bx+w'-1 do
-	  let color = read img imgw imgh x y {r=0; g=0; b=0} in
-	  let res = rgb24_of_rgb24 color in
-	  out_long stream res
-	done
-      done)
+        output_header stream src labelname w' h;
+        for y = by to by+h-1 do
+	  for x = bx to bx+w'-1 do
+	    let color = read img imgw imgh x y {r=0; g=0; b=0} in
+	    let res = rgb24_of_rgb24 color in
+	    out_long stream res
+	  done
+        done)
   end else if !clut_mode then begin
     let img =
       match OImages.tag img with
@@ -696,49 +696,49 @@ let do_file src =
 	  else if nb_colors <= 4 then Some 4
 	  else if nb_colors <= 16 then Some 16
 	  else Some 256
-	  else !force_bpp
+	else !force_bpp
       in
       set_bpp_and_mask bpp
     in
     let w' = adjust_width w in
     let paldst = name_clut basename in
     write_out ((!target_dir)^dst) (fun stream ->
-      output_header stream src labelname w' h;
-      let x = ref 0 and value = ref 0 and i = ref 0 in
-      for y = by to by+h-1 do
-	x := bx;
-	while !x < bx+w' do
-	  i := 0;
-	  value := 0;
-	  while !i < (8 / !bpp_clut) do
-	    let idx = check_index (read img imgw imgh !x y 0) in
-	    let idx =
-	      if !aworld && !bpp_clut = 8 then idx + 16 * (1 + idx / 112)
-	      else idx
-	    in
-	    value := !value lsl (!bpp_clut);
-	    value := !value lor idx;
-	    incr x;
-	    incr i;
-	  done;
-	  out_byte stream !value;
-	done
-      done);
+        output_header stream src labelname w' h;
+        let x = ref 0 and value = ref 0 and i = ref 0 in
+        for y = by to by+h-1 do
+	  x := bx;
+	  while !x < bx+w' do
+	    i := 0;
+	    value := 0;
+	    while !i < (8 / !bpp_clut) do
+	      let idx = check_index (read img imgw imgh !x y 0) in
+	      let idx =
+	        if !aworld && !bpp_clut = 8 then idx + 16 * (1 + idx / 112)
+	        else idx
+	      in
+	      value := !value lsl (!bpp_clut);
+	      value := !value lor idx;
+	      incr x;
+	      incr i;
+	    done;
+	    out_byte stream !value;
+	  done
+        done);
     write_out ((!target_dir)^paldst) (fun stream ->
-      let clutlabelname = name_label_clut basename in
-      output_clut_header stream src clutlabelname nb_colors;
-      for i = 0 to nb_colors-1 do
-	let color = img#query_color i in
-	let res = conv color in
-	out_word stream res
-      done)
+        let clutlabelname = name_label_clut basename in
+        output_clut_header stream src clutlabelname nb_colors;
+        for i = 0 to nb_colors-1 do
+	  let color = img#query_color i in
+	  let res = conv color in
+	  out_word stream res
+        done)
   end else begin
     let img = rgb24 (
-      match OImages.tag img with
-      | Rgb24(_) -> img
-      | Index8(img) -> img#to_rgb24#coerce
-      | Index16(img) -> img#to_rgb24#coerce
-      | _ -> failwith "not supported")
+        match OImages.tag img with
+        | Rgb24(_) -> img
+        | Index8(img) -> img#to_rgb24#coerce
+        | Index16(img) -> img#to_rgb24#coerce
+        | _ -> failwith "not supported")
     in
     let imgw,imgh,bx,by,w,h = get_coords img in
     let w' = adjust_width w in
@@ -795,17 +795,17 @@ let do_file src =
       else fix_id,upd_void
     in
     write_out ((!target_dir)^dst) (fun stream ->
-      output_header stream src labelname w' h;
-      for y = by to by+h-1 do
-	for x = bx to bx+w'-1 do
-	  let color = read img imgw imgh x y {r = 0; g = 0; b = 0} in
-	  let oldcolor = truncate (fixc x y color) in
-	  let res = conv (color_of_triple oldcolor) in
-	  let newcolor = triple_of_color (invconv res) in
-	  upde x y oldcolor newcolor;
-	  out_word stream res
-	done;
-      done)
+        output_header stream src labelname w' h;
+        for y = by to by+h-1 do
+	  for x = bx to bx+w'-1 do
+	    let color = read img imgw imgh x y {r = 0; g = 0; b = 0} in
+	    let oldcolor = truncate (fixc x y color) in
+	    let res = conv (color_of_triple oldcolor) in
+	    let newcolor = triple_of_color (invconv res) in
+	    upde x y oldcolor newcolor;
+	    out_word stream res
+	  done;
+        done)
   end
 
 let get_options () =
@@ -815,8 +815,8 @@ let get_options () =
     Buffer.add_char buf ' '
   in
   begin match !output_format with
-  | Rgb16 -> add_option "-rgb"
-  | Cry16 -> add_option "-cry"
+    | Rgb16 -> add_option "-rgb"
+    | Cry16 -> add_option "-cry"
   end;
   if !dithering then add_option "--dithering"
   else add_option "--no-dithering";
@@ -828,8 +828,8 @@ let get_options () =
   if !opt_clut then add_option "--opt-clut"
   else add_option "--no-opt-clut";
   begin match !force_bpp with
-  | None -> add_option "--no-force-bpp"
-  | Some i -> add_option ("--force-bpp "^(string_of_int i))
+    | None -> add_option "--no-force-bpp"
+    | Some i -> add_option ("--force-bpp "^(string_of_int i))
   end;
   if !mode15bit then add_option "--15-bits"
   else add_option "--16-bits";
@@ -931,7 +931,7 @@ let main () =
 		     "--header",Arg.Set(header),"emit header for bitmap";
 		     "--no-header",Arg.Clear(header),"do not emit header for bitmap";
 		    ]
-    do_file info_string
+      do_file info_string
   in ()
 
 let _ = main ()
