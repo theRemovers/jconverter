@@ -1,4 +1,4 @@
-Seb/The Removers presents you his "Jaguar image converter". 
+# Atari Jaguar Image converter by Seb/The Removers
 
 This tool offers you to convert images in graphical data usable on the
 Atari Jaguar console. It is written in OCaml and uses the library
