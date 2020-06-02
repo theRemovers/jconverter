@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import sys
+
 class Rgb2Cry:
     def __init__(self):
         self.table = \
@@ -4111,7 +4113,35 @@ class Rgb2Cry:
                 for z in range(32):
                     file.write(self.getValue(x, y, z).to_bytes(1, byteorder='big'))
 
-rgb2cry = Rgb2Cry()
+class Options:
+    outputFormat = "rgb"
+    def setRgb(self):
+        outputFormat = "rgb"
+    def setCry(self):
+        outputFormat = "cry"
 
-# with open("table.dat", 'wb') as output:
-#     rgb2cry.dump(output)
+def process(spec, anonymous, args):
+    i = 0
+    def findSpec(arg):
+        for (kwd, nargs, cb, _) in spec:
+            if kwd == arg:
+                return (nargs, cb)
+        return None
+    while i < len(args):
+        arg = args[i]
+        descr = findSpec(arg)
+        if descr:
+            nargs, cb = descr
+            values = args[i+1: i+1+nargs]
+            cb(values)
+            i += nargs
+        else:
+            anonymous(arg)
+        i += 1
+
+options = Options()
+
+spec = [("-rgb", 0, lambda _: options.setRgb(), "rgb16 output format"),
+        ("-cry", 0, lambda _: options.setCry(), "cry16 output format")]
+
+process(spec, lambda x:print(x), sys.argv[1:])
