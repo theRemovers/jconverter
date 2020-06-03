@@ -4114,34 +4114,77 @@ class Rgb2Cry:
                     file.write(self.getValue(x, y, z).to_bytes(1, byteorder='big'))
 
 class Options:
-    outputFormat = "rgb"
+    def __init__(self):
+        self.outputFormat = "rgb"
+        self.dithering = False
     def setRgb(self):
-        outputFormat = "rgb"
+        self.outputFormat = "rgb"
     def setCry(self):
-        outputFormat = "cry"
-
-def process(spec, anonymous, args):
-    i = 0
-    def findSpec(arg):
-        for (kwd, nargs, cb, _) in spec:
-            if kwd == arg:
-                return (nargs, cb)
-        return None
-    while i < len(args):
-        arg = args[i]
-        descr = findSpec(arg)
-        if descr:
-            nargs, cb = descr
-            values = args[i+1: i+1+nargs]
-            cb(values)
-            i += nargs
+        self.outputFormat = "cry"
+    def setDithering(self, b):
+        self.dithering = b
+    def toString(self):
+        result = ""
+        def add(x):
+            nonlocal result
+            if result == "":
+                result += x
+            else:
+                result += " " + x
+        if self.outputFormat == "rgb":
+            add("-rgb")
+        elif self.outputFormat == "cry":
+            add("-cry")
+        if self.dithering:
+            add("--dithering")
         else:
-            anonymous(arg)
-        i += 1
+            add("--no-dithering")
+        return result
+
+class Arg:
+    def __init__(self):
+        self.specList = []
+        self.anonFun = lambda x: print("Unknown argument %s" % x)
+
+    def addArg(self, key, nargs, fun, doc):
+        self.specList.append((key, nargs, fun, doc))
+
+    def setAnonFun(self, fun):
+        self.anonFun = fun
+
+    def findSpec(self, arg):
+        for (kwd, nargs, fun, doc) in self.specList:
+            if kwd == arg:
+                return (nargs, fun, doc)
+        return None
+
+    def parse(self, args):
+        i = 0
+        while i < len(args):
+            arg = args[i]
+            i += 1
+            spec = self.findSpec(arg)
+            if spec:
+                nargs, fun, doc = spec
+                funArgs = args[i: i+nargs]
+                i += nargs
+                fun(args)
+            else:
+                self.anonFun(arg)
+
 
 options = Options()
 
-spec = [("-rgb", 0, lambda _: options.setRgb(), "rgb16 output format"),
-        ("-cry", 0, lambda _: options.setCry(), "cry16 output format")]
+arg = Arg()
+arg.addArg("-rgb", 0, lambda _: options.setRgb(), "rgb16 output format")
+arg.addArg("-cry", 0, lambda _: options.setCry(), "cry16 output format")
+arg.addArg("--dithering", 0, lambda _: options.setDithering(True), "enable dithering")
+arg.addArg("--no-dithering", 0, lambda _: options.setDithering(False), "disable dithering")
 
-process(spec, lambda x:print(x), sys.argv[1:])
+def processFile(x):
+    print(options.toString())
+    print(x)
+
+arg.setAnonFun(processFile)
+
+arg.parse(sys.argv[1:])
