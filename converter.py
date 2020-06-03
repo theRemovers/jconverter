@@ -4115,12 +4115,10 @@ class Rgb2Cry:
 
 class Options:
     def __init__(self):
-        self.outputFormat = "rgb"
+        self.rgbFormat = True
         self.dithering = False
-    def setRgb(self):
-        self.outputFormat = "rgb"
-    def setCry(self):
-        self.outputFormat = "cry"
+    def setRgb(self, b):
+        self.rgbFormat = b
     def setDithering(self, b):
         self.dithering = b
     def toString(self):
@@ -4131,9 +4129,9 @@ class Options:
                 result += x
             else:
                 result += " " + x
-        if self.outputFormat == "rgb":
+        if self.rgbFormat:
             add("-rgb")
-        elif self.outputFormat == "cry":
+        else:
             add("-cry")
         if self.dithering:
             add("--dithering")
@@ -4176,8 +4174,8 @@ class Arg:
 options = Options()
 
 arg = Arg()
-arg.addArg("-rgb", 0, lambda _: options.setRgb(), "rgb16 output format")
-arg.addArg("-cry", 0, lambda _: options.setCry(), "cry16 output format")
+arg.addArg("-rgb", 0, lambda _: options.setRgb(True), "rgb16 output format")
+arg.addArg("-cry", 0, lambda _: options.setRgb(False), "cry16 output format")
 arg.addArg("--dithering", 0, lambda _: options.setDithering(True), "enable dithering")
 arg.addArg("--no-dithering", 0, lambda _: options.setDithering(False), "disable dithering")
 
