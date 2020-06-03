@@ -4117,10 +4117,13 @@ class Options:
     def __init__(self):
         self.rgbFormat = True
         self.dithering = False
+        self.asciiOutput = True
     def setRgb(self, b):
         self.rgbFormat = b
     def setDithering(self, b):
         self.dithering = b
+    def setAscii(self, b):
+        self.asciiOutput = b
     def toString(self):
         result = ""
         def add(x):
@@ -4137,6 +4140,10 @@ class Options:
             add("--dithering")
         else:
             add("--no-dithering")
+        if self.asciiOutput:
+            add("--ascii")
+        else:
+            add("--binary")
         return result
 
 class Arg:
@@ -4178,6 +4185,10 @@ arg.addArg("-rgb", 0, lambda _: options.setRgb(True), "rgb16 output format")
 arg.addArg("-cry", 0, lambda _: options.setRgb(False), "cry16 output format")
 arg.addArg("--dithering", 0, lambda _: options.setDithering(True), "enable dithering")
 arg.addArg("--no-dithering", 0, lambda _: options.setDithering(False), "disable dithering")
+arg.addArg("--ascii", 0, lambda _: options.setAscii(True), "source output (same as --assembly)")
+arg.addArg("--assembly", 0, lambda _: options.setAscii(True), "assembly file")
+arg.addArg("--no-ascii", 0, lambda _: options.setAscii(False), "data output (same as --binary)")
+arg.addArg("--binary", 0, lambda _: options.setAscii(False), "binary file")
 
 def processFile(x):
     print(options.toString())
