@@ -40,6 +40,10 @@ def optionsToString():
         add("--binary")
     return result
 
+def processFile(x):
+    print(optionsToString())
+    print(x)
+
 class Arg:
     def __init__(self):
         self.specList = []
@@ -71,7 +75,6 @@ class Arg:
             else:
                 self.anonFun(arg)
 
-
 arg = Arg()
 arg.addArg("-rgb", 0, lambda _: setRgb(True), "rgb16 output format")
 arg.addArg("-cry", 0, lambda _: setRgb(False), "cry16 output format")
@@ -81,11 +84,5 @@ arg.addArg("--ascii", 0, lambda _: setAscii(True), "source output (same as --ass
 arg.addArg("--assembly", 0, lambda _: setAscii(True), "assembly file")
 arg.addArg("--no-ascii", 0, lambda _: setAscii(False), "data output (same as --binary)")
 arg.addArg("--binary", 0, lambda _: setAscii(False), "binary file")
-
-def processFile(x):
-    print(optionsToString())
-    print(x)
-
 arg.setAnonFun(processFile)
-
 arg.parse(sys.argv[1:])
