@@ -3,38 +3,42 @@
 import sys
 import rgb2cry
 
-class Options:
-    def __init__(self):
-        self.rgbFormat = True
-        self.dithering = False
-        self.asciiOutput = True
-    def setRgb(self, b):
-        self.rgbFormat = b
-    def setDithering(self, b):
-        self.dithering = b
-    def setAscii(self, b):
-        self.asciiOutput = b
-    def toString(self):
-        result = ""
-        def add(x):
-            nonlocal result
-            if result == "":
-                result += x
-            else:
-                result += " " + x
-        if self.rgbFormat:
-            add("-rgb")
+rgbFormat = True
+dithering = False
+asciiOutput = True
+def setRgb(b):
+    global rgbFormat
+    rgbFormat = b
+
+def setDithering(b):
+    global dithering
+    dithering = b
+
+def setAscii(b):
+    global asciiOutput
+    asciiOutput = b
+
+def optionsToString():
+    result = ""
+    def add(x):
+        nonlocal result
+        if result == "":
+            result += x
         else:
-            add("-cry")
-        if self.dithering:
-            add("--dithering")
-        else:
-            add("--no-dithering")
-        if self.asciiOutput:
-            add("--ascii")
-        else:
-            add("--binary")
-        return result
+            result += " " + x
+    if rgbFormat:
+        add("-rgb")
+    else:
+        add("-cry")
+    if dithering:
+        add("--dithering")
+    else:
+        add("--no-dithering")
+    if asciiOutput:
+        add("--ascii")
+    else:
+        add("--binary")
+    return result
 
 class Arg:
     def __init__(self):
@@ -68,20 +72,18 @@ class Arg:
                 self.anonFun(arg)
 
 
-options = Options()
-
 arg = Arg()
-arg.addArg("-rgb", 0, lambda _: options.setRgb(True), "rgb16 output format")
-arg.addArg("-cry", 0, lambda _: options.setRgb(False), "cry16 output format")
-arg.addArg("--dithering", 0, lambda _: options.setDithering(True), "enable dithering")
-arg.addArg("--no-dithering", 0, lambda _: options.setDithering(False), "disable dithering")
-arg.addArg("--ascii", 0, lambda _: options.setAscii(True), "source output (same as --assembly)")
-arg.addArg("--assembly", 0, lambda _: options.setAscii(True), "assembly file")
-arg.addArg("--no-ascii", 0, lambda _: options.setAscii(False), "data output (same as --binary)")
-arg.addArg("--binary", 0, lambda _: options.setAscii(False), "binary file")
+arg.addArg("-rgb", 0, lambda _: setRgb(True), "rgb16 output format")
+arg.addArg("-cry", 0, lambda _: setRgb(False), "cry16 output format")
+arg.addArg("--dithering", 0, lambda _: setDithering(True), "enable dithering")
+arg.addArg("--no-dithering", 0, lambda _: setDithering(False), "disable dithering")
+arg.addArg("--ascii", 0, lambda _: setAscii(True), "source output (same as --assembly)")
+arg.addArg("--assembly", 0, lambda _: setAscii(True), "assembly file")
+arg.addArg("--no-ascii", 0, lambda _: setAscii(False), "data output (same as --binary)")
+arg.addArg("--binary", 0, lambda _: setAscii(False), "binary file")
 
 def processFile(x):
-    print(options.toString())
+    print(optionsToString())
     print(x)
 
 arg.setAnonFun(processFile)
