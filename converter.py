@@ -14,6 +14,7 @@ header = False
 useTga2Cry = True
 targetDir = "./"
 overwrite = False
+mode15bit = False
 
 def setRgb(b):
     global rgbFormat
@@ -30,6 +31,10 @@ def setAscii(b):
 def setHeader(b):
     global header
     header = b
+
+def setMode15Bits(b):
+    global mode15bit
+    mode15bit = b
 
 def setTga2Cry(b):
     global useTga2Cry
@@ -64,6 +69,10 @@ def optionsToString():
     else:
         add("--binary")
     add("--target-dir %s" % targetDir)
+    if mode15bit:
+        add("--15-bits")
+    else:
+        add("--16-bits")
     if overwrite:
         add("--overwrite")
     else:
@@ -228,12 +237,21 @@ def asRGB24(image):
     else:
         return None
 
-class Codec_RGB16:
+class Codec_RGB:
     def description(self):
-        return "Jaguar RGB 16"
+        if mode15bit:
+            return "Jaguar RGB 15"
+        else:
+            return "Jaguar RGB 16"
     def ofRgb24(self, r, g, b):
-        return (((r >> 3) & 0x1f) << 11) | ((g >> 2) & 0x3f) | (((b >> 3) & 0x1f) << 6)
+        n = (((r >> 3) & 0x1f) << 11) | ((g >> 2) & 0x3f) | (((b >> 3) & 0x1f) << 6)
+        if n != 0 and mode15bit:
+            return (n | 1)
+        else:
+            return n
     def toRgb24(self, n):
+        if mode15bit:
+            n = n & 0xfffe
         r = ((n >> 11) & 0x1f) << 3
         g = (n & 0x3f) << 2
         b = ((n >> 6) & 0x1f) << 3
@@ -243,7 +261,7 @@ cos30 = math.cos(math.pi / 6)
 sin30 = math.sin(math.pi / 6)
 tan30 = math.tan(math.pi / 6)
 
-class Codec_CRY16:
+class Codec_CRY:
     def __init__(self):
         self.red = [0, 0, 0, 0, 0, 0, 0, 0,
 	            0, 0, 0, 0, 0, 0, 0, 0,
@@ -342,7 +360,10 @@ class Codec_CRY16:
 	             0, 0, 0, 0, 0, 0, 0, 0,
 	             0, 0, 0, 0, 0, 0, 0, 0]
     def description(self):
-        return "Jaguar CRY 16"
+        if mode15bit:
+            return "Jaguar CRY 15"
+        else:
+            return "Jaguar CRY 16"
     def ofRgb24_compute(self, r, g, b):
         def sat4(n):
             return min(max(n, 0), 15)
@@ -377,12 +398,18 @@ class Codec_CRY16:
             return self.getCRY(c, r, y)
     def ofRgb24(self, r, g, b):
         if useTga2Cry:
-            return self.ofRgb24_table(r, g, b)
+            n=self.ofRgb24_table(r, g, b)
         else:
-            return self.ofRgb24_compute(r, g, b)
+            n=self.ofRgb24_compute(r, g, b)
+        if mode15bit:
+            return (n & 0xfffe)
+        else:
+            return n
     def getCRY(self, c, r, y):
         return (c << 12) | (r << 8) | y
     def toRgb24(self, n):
+        if mode15bit:
+            n = n & 0xfffe
         i = c >> 8
         y = c & 0xff
         r = (self.red[i] * y) >> 8
@@ -422,15 +449,15 @@ def processFile(srcFile):
         tgtFile = openOutFile(baseName)
         if tgtFile:
             if rgbFormat:
-                conv = Codec_RGB16()
+                conv = Codec_RGB()
             else:
-                conv = Codec_CRY16()
-                tgtFile.outputHeader(conv, baseName, width, height)
-                for y in range(height):
-                    for x in range(width):
-                        (r, g, b) = img24.getPixel(x, y)
-                        tgtFile.outputWord(conv.ofRgb24(r, g, b))
-                        tgtFile.close()
+                conv = Codec_CRY()
+            tgtFile.outputHeader(conv, baseName, width, height)
+            for y in range(height):
+                for x in range(width):
+                    (r, g, b) = img24.getPixel(x, y)
+                    tgtFile.outputWord(conv.ofRgb24(r, g, b))
+            tgtFile.close()
 
 class Arg:
     def __init__(self):
@@ -473,6 +500,8 @@ arg.addArg("--assembly", 0, lambda _: setAscii(True), "assembly file")
 arg.addArg("--no-ascii", 0, lambda _: setAscii(False), "data output (same as --binary)")
 arg.addArg("--binary", 0, lambda _: setAscii(False), "binary file")
 arg.addArg("--target-dir", 1, setTargetDir, "set target directory")
+arg.addArg("--15-bits", 0, lambda _: setMode15Bits(True), "15 bits mode")
+arg.addArg("--16-bits", 0, lambda _: setMode15Bits(False), "16 bits mode")
 arg.addArg("--overwrite", 0, lambda _: setOverwrite(True), "overwrite existing files")
 arg.addArg("--no-overwrite", 0, lambda _: setOverwrite(False), "do not overwrite existing files")
 arg.addArg("--use-cry-table", 0, lambda _: setTga2Cry(True), "use precalculed tga2cry conversion table to get CRY values")
