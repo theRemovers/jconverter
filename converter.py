@@ -13,6 +13,7 @@ asciiOutput = True
 header = False
 useTga2Cry = True
 targetDir = "./"
+overwrite = False
 
 def setRgb(b):
     global rgbFormat
@@ -38,6 +39,10 @@ def setTargetDir(s):
     global targetDir
     targetDir = s[0]
 
+def setOverwrite(b):
+    global overwrite
+    overwrite = b
+
 def optionsToString():
     result = ""
     def add(x):
@@ -59,6 +64,10 @@ def optionsToString():
     else:
         add("--binary")
     add("--target-dir %s" % targetDir)
+    if overwrite:
+        add("--overwrite")
+    else:
+        add("--no-overwrite")
     if useTga2Cry:
         add("--use-cry-table")
     else:
@@ -390,27 +399,38 @@ def targetName(baseName):
         else:
             return baseName + ".cry"
 
+def openOutFile(baseName):
+    outFileName = os.path.join(targetDir, targetName(baseName))
+    if os.path.exists(outFileName) and not overwrite:
+        print("File %s already exists" % outFileName)
+        return None
+    else:
+        try:
+            if asciiOutput:
+                return AsciiFile(outFileName)
+            else:
+                return BinaryFile(outFileName)
+        except:
+            print("Error while creating file %s" % outFileName)
+            return None
+
 def processFile(srcFile):
-    print(optionsToString())
     baseName = os.path.basename(os.path.splitext(srcFile)[0])
     img24 = asRGB24(Image.open(srcFile))
     if img24:
         width, height = img24.getPhysicalSize()
-        outFileName = os.path.join(targetDir, targetName(baseName))
-        if asciiOutput:
-            tgtFile = AsciiFile(outFileName)
-        else:
-            tgtFile = BinaryFile(outFileName)
-        if rgbFormat:
-            conv = Codec_RGB16()
-        else:
-            conv = Codec_CRY16()
-        tgtFile.outputHeader(conv, baseName, width, height)
-        for y in range(height):
-            for x in range(width):
-                (r, g, b) = img24.getPixel(x, y)
-                tgtFile.outputWord(conv.ofRgb24(r, g, b))
-        tgtFile.close()
+        tgtFile = openOutFile(baseName)
+        if tgtFile:
+            if rgbFormat:
+                conv = Codec_RGB16()
+            else:
+                conv = Codec_CRY16()
+                tgtFile.outputHeader(conv, baseName, width, height)
+                for y in range(height):
+                    for x in range(width):
+                        (r, g, b) = img24.getPixel(x, y)
+                        tgtFile.outputWord(conv.ofRgb24(r, g, b))
+                        tgtFile.close()
 
 class Arg:
     def __init__(self):
@@ -453,6 +473,8 @@ arg.addArg("--assembly", 0, lambda _: setAscii(True), "assembly file")
 arg.addArg("--no-ascii", 0, lambda _: setAscii(False), "data output (same as --binary)")
 arg.addArg("--binary", 0, lambda _: setAscii(False), "binary file")
 arg.addArg("--target-dir", 1, setTargetDir, "set target directory")
+arg.addArg("--overwrite", 0, lambda _: setOverwrite(True), "overwrite existing files")
+arg.addArg("--no-overwrite", 0, lambda _: setOverwrite(False), "do not overwrite existing files")
 arg.addArg("--use-cry-table", 0, lambda _: setTga2Cry(True), "use precalculed tga2cry conversion table to get CRY values")
 arg.addArg("--compute-cry", 0, lambda _: setTga2Cry(False), "really compute CRY values")
 arg.addArg("--header", 0, lambda _: setHeader(True), "emit header for bitmap")
