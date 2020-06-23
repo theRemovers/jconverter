@@ -12,6 +12,8 @@ rgbFormat = True # RGB16/CRY16
 asciiOutput = True
 header = False
 useTga2Cry = True
+targetDir = "./"
+
 def setRgb(b):
     global rgbFormat
     rgbFormat = b
@@ -31,6 +33,10 @@ def setHeader(b):
 def setTga2Cry(b):
     global useTga2Cry
     useTga2Cry = b
+
+def setTargetDir(s):
+    global targetDir
+    targetDir = s[0]
 
 def optionsToString():
     result = ""
@@ -52,6 +58,7 @@ def optionsToString():
         add("--ascii")
     else:
         add("--binary")
+    add("--target-dir %s" % targetDir)
     if useTga2Cry:
         add("--use-cry-table")
     else:
@@ -374,15 +381,26 @@ class Codec_CRY16:
         b = (self.blue[i] * y) >> 8
         return (r, g, b)
 
+def targetName(baseName):
+    if asciiOutput:
+        return baseName + ".s"
+    else:
+        if rgbFormat:
+            return baseName + ".rgb"
+        else:
+            return baseName + ".cry"
+
 def processFile(srcFile):
+    print(optionsToString())
     baseName = os.path.basename(os.path.splitext(srcFile)[0])
     img24 = asRGB24(Image.open(srcFile))
     if img24:
         width, height = img24.getPhysicalSize()
+        outFileName = os.path.join(targetDir, targetName(baseName))
         if asciiOutput:
-            tgtFile = AsciiFile(baseName + ".s")
+            tgtFile = AsciiFile(outFileName)
         else:
-            tgtFile = BinaryFile(baseName + ".rgb")
+            tgtFile = BinaryFile(outFileName)
         if rgbFormat:
             conv = Codec_RGB16()
         else:
@@ -421,7 +439,7 @@ class Arg:
                 nargs, fun, doc = spec
                 funArgs = args[i: i+nargs]
                 i += nargs
-                fun(args)
+                fun(funArgs)
             else:
                 self.anonFun(arg)
 
@@ -434,6 +452,7 @@ arg.addArg("--ascii", 0, lambda _: setAscii(True), "source output (same as --ass
 arg.addArg("--assembly", 0, lambda _: setAscii(True), "assembly file")
 arg.addArg("--no-ascii", 0, lambda _: setAscii(False), "data output (same as --binary)")
 arg.addArg("--binary", 0, lambda _: setAscii(False), "binary file")
+arg.addArg("--target-dir", 1, setTargetDir, "set target directory")
 arg.addArg("--use-cry-table", 0, lambda _: setTga2Cry(True), "use precalculed tga2cry conversion table to get CRY values")
 arg.addArg("--compute-cry", 0, lambda _: setTga2Cry(False), "really compute CRY values")
 arg.addArg("--header", 0, lambda _: setHeader(True), "emit header for bitmap")
