@@ -17,6 +17,9 @@ overwrite = False
 mode15bit = False
 keepPositive = True
 keepNegative = True
+grayMode = False
+glassMode = False
+textureMode = False
 
 def setRgb(b):
     global rgbFormat
@@ -43,6 +46,26 @@ def setKeepPosNeg(positive, negative):
     global keepNegative
     keepPositive = positive
     keepNegative = negative
+
+def setGrayMode():
+    global grayMode
+    grayMode = True
+
+def setGlassMode():
+    global glassMode
+    glassMode = True
+
+def setTextureMode():
+    global textureMode
+    textureMode = True
+
+def setNormalMode():
+    global grayMode
+    global glassMode
+    global textureMode
+    grayMode = False
+    glassMode = False
+    textureMode = False
 
 def setTga2Cry(b):
     global useTga2Cry
@@ -81,6 +104,12 @@ def optionsToString():
         add("--15-bits")
     else:
         add("--16-bits")
+    if grayMode:
+        add("--gray")
+    if glassMode:
+        add("--glass")
+    if textureMode:
+        add("--texture")
     if keepPositive and not keepNegative:
         add("--positive")
     if keepNegative and not keepPositive:
@@ -401,15 +430,17 @@ class Codec_CRY:
     def ofRgb24_table(self, r, g, b):
         y = max(r, g, b)
         if y == 0:
-            return 0
+            xx = 0
+            yy = 0
+            zz = 0
         else:
             xx = ((r * 255) // y) >> 3
             yy = ((g * 255) // y) >> 3
             zz = ((b * 255) // y) >> 3
-            cr = rgb2cry.getValue(xx, yy, zz)
-            c = (cr >> 4) & 0xf
-            r = cr & 0xf
-            return self.getCRY(c, r, y)
+        cr = rgb2cry.getValue(xx, yy, zz)
+        c = (cr >> 4) & 0xf
+        r = cr & 0xf
+        return self.getCRY(c, r, y)
     def ofRgb24(self, r, g, b):
         if useTga2Cry:
             n=self.ofRgb24_table(r, g, b)
@@ -429,7 +460,17 @@ class Codec_CRY:
                 return min(x, 0)
             else:
                 return 0
-        return (c << 12) | (r << 8) | y
+        if grayMode:
+            if glassMode:
+                return (check_pos_neg(y - 0x80) & 0xff)
+            else:
+                return y
+        elif glassMode:
+            return ((check_pos_neg(c - 8) & 0xf) << 12) | ((check_pos_neg(r - 8) & 0xf) << 8) | ((check_pos_neg(y - 0x80)) & 0xff)
+        elif textureMode:
+            return (((c << 12) | (r << 8) | y) ^ 0x0080)
+        else:
+            return ((c << 12) | (r << 8) | y)
     def toRgb24(self, n):
         if mode15bit:
             n = n & 0xfffe
@@ -525,9 +566,13 @@ arg.addArg("--binary", 0, lambda _: setAscii(False), "binary file")
 arg.addArg("--target-dir", 1, setTargetDir, "set target directory")
 arg.addArg("--15-bits", 0, lambda _: setMode15Bits(True), "15 bits mode")
 arg.addArg("--16-bits", 0, lambda _: setMode15Bits(False), "16 bits mode")
-arg.addArg("--positive", 0, lambda _: setKeepPosNeg(True, False), "keep only positive delta")
-arg.addArg("--negative", 0, lambda _: setKeepPosNeg(False, True), "keep only negative delta")
-arg.addArg("--both", 0, lambda _: setKeepPosNeg(True, True), "keep both delta types")
+arg.addArg("--gray", 0, lambda _: setGrayMode(), "gray (CRY intensities)")
+arg.addArg("--glass", 0, lambda _: setGlassMode(), "glass (CRY relative)")
+arg.addArg("--texture", 0, lambda _: setTextureMode(), "texture fixed intensities (CRY)")
+arg.addArg("--positive", 0, lambda _: setKeepPosNeg(positive = True, negative = False), "keep only positive delta")
+arg.addArg("--negative", 0, lambda _: setKeepPosNeg(positive = False, negative = True), "keep only negative delta")
+arg.addArg("--both", 0, lambda _: setKeepPosNeg(positive = True, negative = True), "keep both delta types")
+arg.addArg("--normal", 0, lambda _: setNormalMode(), "normal CRY")
 arg.addArg("--overwrite", 0, lambda _: setOverwrite(True), "overwrite existing files")
 arg.addArg("--no-overwrite", 0, lambda _: setOverwrite(False), "do not overwrite existing files")
 arg.addArg("--use-cry-table", 0, lambda _: setTga2Cry(True), "use precalculed tga2cry conversion table to get CRY values")
