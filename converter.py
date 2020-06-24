@@ -15,6 +15,8 @@ useTga2Cry = True
 targetDir = "./"
 overwrite = False
 mode15bit = False
+keepPositive = True
+keepNegative = True
 
 def setRgb(b):
     global rgbFormat
@@ -35,6 +37,12 @@ def setHeader(b):
 def setMode15Bits(b):
     global mode15bit
     mode15bit = b
+
+def setKeepPosNeg(positive, negative):
+    global keepPositive
+    global keepNegative
+    keepPositive = positive
+    keepNegative = negative
 
 def setTga2Cry(b):
     global useTga2Cry
@@ -73,6 +81,12 @@ def optionsToString():
         add("--15-bits")
     else:
         add("--16-bits")
+    if keepPositive and not keepNegative:
+        add("--positive")
+    if keepNegative and not keepPositive:
+        add("--negative")
+    if keepPositive and keepNegative:
+        add("--both")
     if overwrite:
         add("--overwrite")
     else:
@@ -406,6 +420,15 @@ class Codec_CRY:
         else:
             return n
     def getCRY(self, c, r, y):
+        def check_pos_neg(x):
+            if keepPositive and keepNegative:
+                return x
+            elif keepPositive:
+                return max(x, 0)
+            elif keepNegative:
+                return min(x, 0)
+            else:
+                return 0
         return (c << 12) | (r << 8) | y
     def toRgb24(self, n):
         if mode15bit:
@@ -502,6 +525,9 @@ arg.addArg("--binary", 0, lambda _: setAscii(False), "binary file")
 arg.addArg("--target-dir", 1, setTargetDir, "set target directory")
 arg.addArg("--15-bits", 0, lambda _: setMode15Bits(True), "15 bits mode")
 arg.addArg("--16-bits", 0, lambda _: setMode15Bits(False), "16 bits mode")
+arg.addArg("--positive", 0, lambda _: setKeepPosNeg(True, False), "keep only positive delta")
+arg.addArg("--negative", 0, lambda _: setKeepPosNeg(False, True), "keep only negative delta")
+arg.addArg("--both", 0, lambda _: setKeepPosNeg(True, True), "keep both delta types")
 arg.addArg("--overwrite", 0, lambda _: setOverwrite(True), "overwrite existing files")
 arg.addArg("--no-overwrite", 0, lambda _: setOverwrite(False), "do not overwrite existing files")
 arg.addArg("--use-cry-table", 0, lambda _: setTga2Cry(True), "use precalculed tga2cry conversion table to get CRY values")
