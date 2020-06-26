@@ -255,11 +255,15 @@ class Rgb24_of_P:
         self.image = image
         self.palette = image.getpalette()
     def getPixel(self, x, y):
-        idx = 3 * self.image.getpixel((x, y))
-        r = self.palette[idx]
-        g = self.palette[idx+1]
-        b = self.palette[idx+2]
-        return (r, g, b)
+        w, h = self.getPhysicalSize()
+        if 0 <= x and x < w and 0 <= y and y < h:
+            idx = 3 * self.image.getpixel((x, y))
+            r = self.palette[idx]
+            g = self.palette[idx+1]
+            b = self.palette[idx+2]
+            return (r, g, b)
+        else:
+            return (0, 0, 0)
     def getPhysicalSize(self):
         return self.image.size
 
@@ -268,7 +272,11 @@ class Rgb24_of_RGB:
         assert image.mode == "RGB"
         self.image = image
     def getPixel(self, x, y):
-        return self.image.getpixel((x, y))
+        w, h = self.getPhysicalSize()
+        if 0 <= x and x < w and 0 <= y and y < h:
+            return self.image.getpixel((x, y))
+        else:
+            return (0, 0, 0)
     def getPhysicalSize(self):
         return self.image.size
 
