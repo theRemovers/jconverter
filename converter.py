@@ -151,7 +151,7 @@ def gen_flags(width):
 
 def check_blitter_width(width, blitter_width):
     if width != blitter_width:
-        print("invalid blitter width: %d != %d\n" % (blitter_width, width), file=sys.stderr)
+        print("Invalid blitter width: %d != %d\n" % (blitter_width, width), file=sys.stderr)
 
 def phrase_width(width):
     assert (width % 4) == 0
@@ -501,7 +501,7 @@ def targetName(baseName):
 def openOutFile(baseName):
     outFileName = os.path.join(targetDir, targetName(baseName))
     if os.path.exists(outFileName) and not overwrite:
-        print("File %s already exists" % outFileName)
+        print("File %s already exists" % outFileName, file=sys.stderr)
         return None
     else:
         try:
@@ -510,8 +510,14 @@ def openOutFile(baseName):
             else:
                 return BinaryFile(outFileName)
         except:
-            print("Error while creating file %s" % outFileName)
+            print("Error while creating file %s" % outFileName, file=sys.stderr)
             return None
+
+def adjust_width(w):
+    wp = (((w * 2) + 7) // 8) * 4
+    if wp != w:
+        print("Extending width from %d to %d\n" % (w, wp))
+    return wp
 
 def processFile(srcFile):
     baseName = os.path.basename(os.path.splitext(srcFile)[0])
@@ -524,9 +530,10 @@ def processFile(srcFile):
                 conv = Codec_RGB()
             else:
                 conv = Codec_CRY()
-            tgtFile.outputHeader(conv, baseName, width, height)
+            adjustedWidth = adjust_width(width)
+            tgtFile.outputHeader(conv, baseName, adjustedWidth, height)
             for y in range(height):
-                for x in range(width):
+                for x in range(adjustedWidth):
                     (r, g, b) = img24.getPixel(x, y)
                     tgtFile.outputWord(conv.ofRgb24(r, g, b))
             tgtFile.close()
