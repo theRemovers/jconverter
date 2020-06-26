@@ -188,18 +188,18 @@ class AsciiFile:
         self.dataHdr = header
     def outputByte(self, v):
         self.setDataHeader("dc.b")
-        self.outputData("$%02x" % v)
+        self.outputData("$%02X" % v)
     def outputWord(self, v):
         self.setDataHeader("dc.w")
-        self.outputData("$%04x" % v)
+        self.outputData("$%04X" % v)
     def outputLong(self, v):
         self.setDataHeader("dc.l")
-        self.outputData("$%08x" % v)
+        self.outputData("$%08X" % v)
     def outputHeader(self, conv, baseName, width, height):
         if not(self.file):
             return
         labelName = "_" + baseName + "Gfx"
-        self.file.write("; Converted by 'Jaguar image converter' by Seb/The Removers\n")
+        self.file.write("; Converted with 'Jaguar image converter' by Seb/The Removers (Python version)\n")
         self.file.write("\t.data\n")
         self.file.write("\t.globl\t%s\n" % labelName)
         self.file.write("\t.phrase\n")
