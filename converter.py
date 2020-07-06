@@ -20,6 +20,9 @@ keepNegative = True
 grayMode = False
 glassMode = False
 textureMode = False
+clutMode = False
+optClut = False
+forceBpp = None
 
 def setRgb(b):
     global rgbFormat
@@ -79,6 +82,22 @@ def setOverwrite(b):
     global overwrite
     overwrite = b
 
+def setClutMode(b):
+    global clutMode
+    clutMode = b
+
+def setOptClut(b):
+    global optClut
+    optClut = b
+
+def setForceBpp(n):
+    global forceBpp
+    forceBpp = n
+
+def clearForceBpp():
+    global forceBpp
+    forceBpp = None
+
 def optionsToString():
     result = ""
     def add(x):
@@ -100,6 +119,18 @@ def optionsToString():
     else:
         add("--binary")
     add("--target-dir %s" % targetDir)
+    if clutMode:
+        add("--clut")
+    else:
+        add("--no-clut")
+    if optClut:
+        add("--opt-clut")
+    else:
+        add("--no-opt-clut")
+    if forceBpp:
+        add("--force-bpp %d" % forceBpp)
+    else:
+        add("--no-force-bpp")
     if mode15bit:
         add("--15-bits")
     else:
@@ -579,6 +610,12 @@ arg.addArg("--assembly", 0, lambda _: setAscii(True), "assembly file")
 arg.addArg("--no-ascii", 0, lambda _: setAscii(False), "data output (same as --binary)")
 arg.addArg("--binary", 0, lambda _: setAscii(False), "binary file")
 arg.addArg("--target-dir", 1, setTargetDir, "set target directory")
+arg.addArg("--clut", 0, lambda _: setClutMode(True), "clut mode")
+arg.addArg("--no-clut", 0, lambda _: setClutMode(False), "true color mode")
+arg.addArg("--opt-clut", 0, lambda _: setOptClut(True), "optimise low resolution images")
+arg.addArg("--no-opt-clut", 0, lambda _: setOptClut(False), "do not optimise low resolution images")
+arg.addArg("--force-bpp", 1, lambda s: setForceBpp(int(s[0])), "force bpp in clut mode")
+arg.addArg("--no-force-bpp", 0, lambda _: clearForceBpp(), "do not force bpp in clut mode")
 arg.addArg("--15-bits", 0, lambda _: setMode15Bits(True), "15 bits mode")
 arg.addArg("--16-bits", 0, lambda _: setMode15Bits(False), "16 bits mode")
 arg.addArg("--gray", 0, lambda _: setGrayMode(), "gray (CRY intensities)")
