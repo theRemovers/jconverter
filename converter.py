@@ -319,6 +319,47 @@ def asRGB24(image):
     else:
         return None
 
+class CLUT_of_P:
+    def __init__(self, image):
+        assert image.mode == "P"
+        self.image = image
+        self.palette = self.image.getpalette()
+        nbColors = 0
+        for (_, c) in self.image.getcolors():
+            nbColors = max(0, c)
+        nbColors += 1
+        maxClut = forceBpp
+        if optClut:
+            if nbColors <= 2:
+                maxClut = 2
+            elif nbColors <= 4:
+                maxClut = 4
+            elif nbColors <= 16:
+                maxClut = 16
+            else:
+                maxClut = 256
+        if not(maxClut) or maxClut == 256:
+            self.bppClut = 8
+            self.mask = 0xff
+        elif maxClut == 2:
+            self.bppClut = 1
+            self.mask = 0x1
+        elif maxClut == 4:
+            self.bppClut = 2
+            self.mask = 0x3
+        else:
+            assert maxClut == 16
+            self.bppClut = 4
+            self.mask = 0xf
+        print(self.bppClut)
+        print(self.mask)
+
+def asCLUT(image):
+    if image.mode == "P":
+        return CLUT_of_P(image)
+    else:
+        return None
+
 class Codec_RGB:
     def description(self):
         if mode15bit:
@@ -552,22 +593,27 @@ def adjust_width(w):
 
 def processFile(srcFile):
     baseName = os.path.basename(os.path.splitext(srcFile)[0])
-    img24 = asRGB24(Image.open(srcFile))
-    if img24:
-        width, height = img24.getPhysicalSize()
-        tgtFile = openOutFile(baseName)
-        if tgtFile:
-            if rgbFormat:
-                conv = Codec_RGB()
-            else:
-                conv = Codec_CRY()
-            adjustedWidth = adjust_width(width)
-            tgtFile.outputHeader(conv, baseName, adjustedWidth, height)
-            for y in range(height):
-                for x in range(adjustedWidth):
-                    (r, g, b) = img24.getPixel(x, y)
-                    tgtFile.outputWord(conv.ofRgb24(r, g, b))
-            tgtFile.close()
+    if clutMode:
+        img = asCLUT(Image.open(srcFile))
+        if img:
+            pass
+    else:
+        img24 = asRGB24(Image.open(srcFile))
+        if img24:
+            width, height = img24.getPhysicalSize()
+            tgtFile = openOutFile(baseName)
+            if tgtFile:
+                if rgbFormat:
+                    conv = Codec_RGB()
+                else:
+                    conv = Codec_CRY()
+                    adjustedWidth = adjust_width(width)
+                    tgtFile.outputHeader(conv, baseName, adjustedWidth, height)
+                    for y in range(height):
+                        for x in range(adjustedWidth):
+                            (r, g, b) = img24.getPixel(x, y)
+                            tgtFile.outputWord(conv.ofRgb24(r, g, b))
+                            tgtFile.close()
 
 class Arg:
     def __init__(self):
