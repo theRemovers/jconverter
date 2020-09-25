@@ -174,11 +174,10 @@ def exponent_mantissa(width):
     blitter_width = numpy.right_shift(m << exp, 2)
     return (exp, mant, blitter_width)
 
-def gen_flags(width):
-    depth = 4
+def gen_flags(width, depth):
     exp, mant, blitter_width = exponent_mantissa(width)
     flags = (exp << 11) | (mant << 9) | (depth << 3)
-    return flags, depth, blitter_width
+    return flags, blitter_width
 
 def check_blitter_width(width, blitter_width):
     if width != blitter_width:
@@ -222,7 +221,7 @@ class AsciiFile:
     def outputLong(self, v):
         self.setDataHeader("dc.l")
         self.outputData("$%08X" % v)
-    def outputHeader(self, conv, baseName, width, height):
+    def outputHeader(self, conv, baseName, width, phraseWidth, height, depth):
         if not(self.file):
             return
         labelName = "_" + baseName + "Gfx"
@@ -233,10 +232,10 @@ class AsciiFile:
         self.file.write("%s:\n" % labelName)
         self.file.write("; %d x %d\n" % (width, height))
         self.file.write("; %s\n" % (conv.description()))
-        self.file.write("; %d phrases per line\n" % (conv.phraseWidth(width)))
+        self.file.write("; %d phrases per line\n" % phraseWidth)
         if header:
             self.file.write("\tdc.w\t%d, %d\n" % (height, width))
-            flags, depth, blitter_width = gen_flags(width)
+            flags, blitter_width = gen_flags(width, depth)
             check_blitter_width(width, blitter_width)
             self.file.write("\tdc.l\t$%08X\t; PITCH1|PIXEL%d|WID%d\n" % (flags, 1 << depth, blitter_width))
     def close(self):
@@ -261,13 +260,13 @@ class BinaryFile:
         if not(self.file):
             return
         self.file.write(bytearray([(v >> 24) & 0xff, (v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff]))
-    def outputHeader(self, conv, baseName, width, height):
+    def outputHeader(self, conv, baseName, width, phraseWidth, height, depth):
         if not(self.file):
             return
         if header:
             self.outputWord(height)
             self.outputWord(width)
-            flags, _, blitter_width = gen_flags(width)
+            flags, blitter_width = gen_flags(width, depth)
             check_blitter_width(width, blitter_width)
             self.outputLong(flags)
     def close(self):
@@ -375,12 +374,6 @@ class Codec_RGB:
         g = (n & 0x3f) << 2
         b = ((n >> 6) & 0x1f) << 3
         return (r, g, b)
-    def adjustWidth(self, w):
-        wp = (((w * 2) + 7) // 8) * 4
-        return wp
-    def phraseWidth(self, w):
-        assert (w % 4) == 0
-        return (w / 4)
 
 cos30 = math.cos(math.pi / 6)
 sin30 = math.sin(math.pi / 6)
@@ -562,12 +555,6 @@ class Codec_CRY:
         g = (self.green[i] * y) >> 8
         b = (self.blue[i] * y) >> 8
         return (r, g, b)
-    def adjustWidth(self, w):
-        wp = (((w * 2) + 7) // 8) * 4
-        return wp
-    def phraseWidth(self, w):
-        assert (w % 4) == 0
-        return (w / 4)
 
 def targetName(baseName):
     if asciiOutput:
@@ -613,9 +600,11 @@ def processFile(srcFile):
                     conv = Codec_RGB()
                 else:
                     conv = Codec_CRY()
-                adjustedWidth = conv.adjustWidth(width)
+                phraseWidth = (((width * 2) + 7) // 8)
+                adjustedWidth = phraseWidth * 4
+                depth = 4
                 warn_adjusted_with(width, adjustedWidth);
-                tgtFile.outputHeader(conv, baseName, adjustedWidth, height)
+                tgtFile.outputHeader(conv, baseName, adjustedWidth, phraseWidth, height, depth)
                 for y in range(height):
                     for x in range(adjustedWidth):
                         (r, g, b) = img24.getPixel(x, y)
