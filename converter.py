@@ -607,13 +607,13 @@ def processFile(srcFile):
                     conv = Codec_RGB()
                 else:
                     conv = Codec_CRY()
-                    adjustedWidth = adjust_width(width)
-                    tgtFile.outputHeader(conv, baseName, adjustedWidth, height)
-                    for y in range(height):
-                        for x in range(adjustedWidth):
-                            (r, g, b) = img24.getPixel(x, y)
-                            tgtFile.outputWord(conv.ofRgb24(r, g, b))
-                            tgtFile.close()
+                adjustedWidth = adjust_width(width)
+                tgtFile.outputHeader(conv, baseName, adjustedWidth, height)
+                for y in range(height):
+                    for x in range(adjustedWidth):
+                        (r, g, b) = img24.getPixel(x, y)
+                        tgtFile.outputWord(conv.ofRgb24(r, g, b))
+                tgtFile.close()
 
 class Arg:
     def __init__(self):
