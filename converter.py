@@ -184,10 +184,6 @@ def check_blitter_width(width, blitter_width):
     if width != blitter_width:
         print("Invalid blitter width: %d != %d\n" % (blitter_width, width), file=sys.stderr)
 
-def phrase_width(width):
-    assert (width % 4) == 0
-    return (width / 4)
-
 class AsciiFile:
     def __init__(self, fileName):
         self.counter = 0
@@ -237,7 +233,7 @@ class AsciiFile:
         self.file.write("%s:\n" % labelName)
         self.file.write("; %d x %d\n" % (width, height))
         self.file.write("; %s\n" % (conv.description()))
-        self.file.write("; %d phrases per line\n" % (phrase_width(width)))
+        self.file.write("; %d phrases per line\n" % (conv.phraseWidth(width)))
         if header:
             self.file.write("\tdc.w\t%d, %d\n" % (height, width))
             flags, depth, blitter_width = gen_flags(width)
@@ -379,6 +375,12 @@ class Codec_RGB:
         g = (n & 0x3f) << 2
         b = ((n >> 6) & 0x1f) << 3
         return (r, g, b)
+    def adjustWidth(self, w):
+        wp = (((w * 2) + 7) // 8) * 4
+        return wp
+    def phraseWidth(self, w):
+        assert (w % 4) == 0
+        return (w / 4)
 
 cos30 = math.cos(math.pi / 6)
 sin30 = math.sin(math.pi / 6)
@@ -560,6 +562,12 @@ class Codec_CRY:
         g = (self.green[i] * y) >> 8
         b = (self.blue[i] * y) >> 8
         return (r, g, b)
+    def adjustWidth(self, w):
+        wp = (((w * 2) + 7) // 8) * 4
+        return wp
+    def phraseWidth(self, w):
+        assert (w % 4) == 0
+        return (w / 4)
 
 def targetName(baseName):
     if asciiOutput:
@@ -585,11 +593,9 @@ def openOutFile(baseName):
             print("Error while creating file %s" % outFileName, file=sys.stderr)
             return None
 
-def adjust_width(w):
-    wp = (((w * 2) + 7) // 8) * 4
+def warn_adjusted_with(w, wp):
     if wp != w:
         print("Extending width from %d to %d\n" % (w, wp))
-    return wp
 
 def processFile(srcFile):
     baseName = os.path.basename(os.path.splitext(srcFile)[0])
@@ -607,7 +613,8 @@ def processFile(srcFile):
                     conv = Codec_RGB()
                 else:
                     conv = Codec_CRY()
-                adjustedWidth = adjust_width(width)
+                adjustedWidth = conv.adjustWidth(width)
+                warn_adjusted_with(width, adjustedWidth);
                 tgtFile.outputHeader(conv, baseName, adjustedWidth, height)
                 for y in range(height):
                     for x in range(adjustedWidth):
