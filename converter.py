@@ -221,7 +221,7 @@ class AsciiFile:
     def outputLong(self, v):
         self.setDataHeader("dc.l")
         self.outputData("$%08X" % v)
-    def outputHeader(self, conv, baseName, width, phraseWidth, height, depth):
+    def outputHeader(self, description, baseName, width, phraseWidth, height, depth):
         if not(self.file):
             return
         labelName = "_" + baseName + "Gfx"
@@ -231,7 +231,7 @@ class AsciiFile:
         self.file.write("\t.phrase\n")
         self.file.write("%s:\n" % labelName)
         self.file.write("; %d x %d\n" % (width, height))
-        self.file.write("; %s\n" % (conv.description()))
+        self.file.write("; %s\n" % description)
         self.file.write("; %d phrases per line\n" % phraseWidth)
         if header:
             self.file.write("\tdc.w\t%d, %d\n" % (height, width))
@@ -260,7 +260,7 @@ class BinaryFile:
         if not(self.file):
             return
         self.file.write(bytearray([(v >> 24) & 0xff, (v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff]))
-    def outputHeader(self, conv, baseName, width, phraseWidth, height, depth):
+    def outputHeader(self, description, baseName, width, phraseWidth, height, depth):
         if not(self.file):
             return
         if header:
@@ -346,8 +346,33 @@ class CLUT_of_P:
             assert maxClut == 16
             self.bppClut = 4
             self.mask = 0xf
-        print(self.bppClut)
-        print(self.mask)
+    def getPhysicalSize(self):
+        return self.image.size
+    def adjustWidth(self, w):
+        q1 = w // (8 // self.bppClut)
+        if not (w % (8 // self.bppClut) == 0):
+            q1+=1
+        q = q1 // 8
+        if not (q1 % 8 == 0):
+            q+=1
+        return q * 8 * (8 // self.bppClut)
+    def phraseWidth(self, w):
+        q1 = w // (8 // self.bppClut)
+        if not (w % (8 // self.bppClut) == 0):
+            q1+=1
+        assert (q1 % 8 == 0)
+        return q1 / 8
+    def depth(self):
+        if self.bppClut == 1:
+            return 0
+        elif self.bppClut == 2:
+            return 1
+        elif self.bppClut == 4:
+            return 2
+        else:
+            return 3
+    def description(self):
+        return ("Pixel map (%d bits per pixel)" % self.bppClut)
 
 def asCLUT(image):
     if image.mode == "P":
@@ -589,7 +614,15 @@ def processFile(srcFile):
     if clutMode:
         img = asCLUT(Image.open(srcFile))
         if img:
-            pass
+            width, height = img.getPhysicalSize()
+            tgtFile = openOutFile(baseName)
+            if tgtFile:
+                adjustedWidth = img.adjustWidth(width)
+                warn_adjusted_with(width, adjustedWidth)
+                phraseWidth = img.phraseWidth(adjustedWidth)
+                depth = img.depth()
+                tgtFile.outputHeader(img.description(), baseName, adjustedWidth, phraseWidth, height, depth)
+                tgtFile.close()
     else:
         img24 = asRGB24(Image.open(srcFile))
         if img24:
@@ -603,8 +636,8 @@ def processFile(srcFile):
                 phraseWidth = (((width * 2) + 7) // 8)
                 adjustedWidth = phraseWidth * 4
                 depth = 4
-                warn_adjusted_with(width, adjustedWidth);
-                tgtFile.outputHeader(conv, baseName, adjustedWidth, phraseWidth, height, depth)
+                warn_adjusted_with(width, adjustedWidth)
+                tgtFile.outputHeader(conv.description(), baseName, adjustedWidth, phraseWidth, height, depth)
                 for y in range(height):
                     for x in range(adjustedWidth):
                         (r, g, b) = img24.getPixel(x, y)
