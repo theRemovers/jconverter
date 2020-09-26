@@ -335,7 +335,6 @@ class CLUT_of_P:
         for (_, c) in self.image.getcolors():
             nbColors = max(0, c)
         nbColors += 1
-        self.nbColors = nbColors
         maxClut = forceBpp
         if optClut:
             if nbColors <= 2:
@@ -368,7 +367,7 @@ class CLUT_of_P:
         b = self.palette[3*idx+2]
         return (r, g, b)
     def getNbColors(self):
-        return self.nbColors
+        return (2 ** self.bppClut)
     def getPhysicalSize(self):
         return self.image.size
     def getPixel(self, x, y):
