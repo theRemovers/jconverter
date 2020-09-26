@@ -23,6 +23,7 @@ textureMode = False
 clutMode = False
 optClut = False
 forceBpp = None
+aworld = False
 
 def setRgb(b):
     global rgbFormat
@@ -81,6 +82,10 @@ def setTargetDir(s):
 def setOverwrite(b):
     global overwrite
     overwrite = b
+
+def setAworld(b):
+    global aworld
+    aworld = b
 
 def setClutMode(b):
     global clutMode
@@ -155,6 +160,10 @@ def optionsToString():
         add("--use-cry-table")
     else:
         add("--compute-cry")
+    if aword:
+        add("--aworld")
+    else:
+        add("--no-aworld")
     if header:
         add("--header")
     else:
@@ -224,7 +233,10 @@ class AsciiFile:
     def outputHeader(self, description, baseName, width, phraseWidth, height, depth):
         if not(self.file):
             return
-        labelName = "_" + baseName + "Gfx"
+        if clutMode:
+            labelName = "_" + baseName + "Map"
+        else:
+            labelName = "_" + baseName + "Gfx"
         self.file.write("; Converted with 'Jaguar image converter' by Seb/The Removers (Python version)\n")
         self.file.write("\t.data\n")
         self.file.write("\t.globl\t%s\n" % labelName)
@@ -323,6 +335,7 @@ class CLUT_of_P:
         for (_, c) in self.image.getcolors():
             nbColors = max(0, c)
         nbColors += 1
+        self.nbColors = nbColors
         maxClut = forceBpp
         if optClut:
             if nbColors <= 2:
@@ -346,8 +359,28 @@ class CLUT_of_P:
             assert maxClut == 16
             self.bppClut = 4
             self.mask = 0xf
+    def getBpp(self):
+        return self.bppClut
+    def getColor(self, idx):
+        palette = self.image.getpalette()
+        r = palette[3*idx]
+        g = self.palette[3*idx+1]
+        b = self.palette[3*idx+2]
+        return (r, g, b)
+    def getNbColors(self):
+        return self.nbColors
     def getPhysicalSize(self):
         return self.image.size
+    def getPixel(self, x, y):
+        w, h = self.getPhysicalSize()
+        if 0 <= x and x < w and 0 <= y and y < h:
+            idx = self.image.getpixel((x, y))
+        else:
+            idx = 0
+        assert idx & self.mask == idx
+        if aworld and self.bppClut == 8:
+            idx = idx + 16 * (1 + idx // 112)
+        return idx
     def adjustWidth(self, w):
         q1 = w // (8 // self.bppClut)
         if not (w % (8 // self.bppClut) == 0):
@@ -585,13 +618,28 @@ def targetName(baseName):
     if asciiOutput:
         return baseName + ".s"
     else:
-        if rgbFormat:
-            return baseName + ".rgb"
+        if clutMode:
+            return baseName + ".map"
         else:
-            return baseName + ".cry"
+            if rgbFormat:
+                return baseName + ".rgb"
+            else:
+                return baseName + ".cry"
 
-def openOutFile(baseName):
-    outFileName = os.path.join(targetDir, targetName(baseName))
+def clutName(baseName):
+    if asciiOutput:
+        if rgbFormat:
+            return baseName + "_rgb_pal.s"
+        else:
+            return baseName + "_cry_pal.s"
+    else:
+        if rgbFormat:
+            return baseName + "_rgb.pal"
+        else:
+            return baseName + "_cry.pal"
+
+def openOutFile(name):
+    outFileName = os.path.join(targetDir, name)
     if os.path.exists(outFileName) and not overwrite:
         print("File %s already exists" % outFileName, file=sys.stderr)
         return None
@@ -611,28 +659,44 @@ def warn_adjusted_with(w, wp):
 
 def processFile(srcFile):
     baseName = os.path.basename(os.path.splitext(srcFile)[0])
+    if rgbFormat:
+        conv = Codec_RGB()
+    else:
+        conv = Codec_CRY()
     if clutMode:
         img = asCLUT(Image.open(srcFile))
         if img:
             width, height = img.getPhysicalSize()
-            tgtFile = openOutFile(baseName)
+            tgtFile = openOutFile(targetName(baseName))
             if tgtFile:
                 adjustedWidth = img.adjustWidth(width)
                 warn_adjusted_with(width, adjustedWidth)
                 phraseWidth = img.phraseWidth(adjustedWidth)
                 depth = img.depth()
                 tgtFile.outputHeader(img.description(), baseName, adjustedWidth, phraseWidth, height, depth)
+                for y in range(height):
+                    x = 0
+                    while x < adjustedWidth:
+                        value = 0
+                        for i in range(8 // img.getBpp()):
+                            idx = img.getPixel(x, y)
+                            value = value << img.getBpp()
+                            value = value | idx
+                            x+=1
+                        tgtFile.outputByte(value)
                 tgtFile.close()
+            clutFile = openOutFile(clutName(baseName))
+            if clutFile:
+                for idx in range(img.getNbColors()):
+                    (r, g, b) = img.getColor(idx)
+                    clutFile.outputWord(conv.ofRgb24(r, g, b))
+                clutFile.close()
     else:
         img24 = asRGB24(Image.open(srcFile))
         if img24:
             width, height = img24.getPhysicalSize()
-            tgtFile = openOutFile(baseName)
+            tgtFile = openOutFile(targetName(baseName))
             if tgtFile:
-                if rgbFormat:
-                    conv = Codec_RGB()
-                else:
-                    conv = Codec_CRY()
                 phraseWidth = (((width * 2) + 7) // 8)
                 adjustedWidth = phraseWidth * 4
                 depth = 4
@@ -704,6 +768,8 @@ arg.addArg("--overwrite", 0, lambda _: setOverwrite(True), "overwrite existing f
 arg.addArg("--no-overwrite", 0, lambda _: setOverwrite(False), "do not overwrite existing files")
 arg.addArg("--use-cry-table", 0, lambda _: setTga2Cry(True), "use precalculed tga2cry conversion table to get CRY values")
 arg.addArg("--compute-cry", 0, lambda _: setTga2Cry(False), "really compute CRY values")
+arg.addArg("--aworld", 0, lambda _: setAworld(True), "enable Another World mode (undocumented)")
+arg.addArg("--no-aworld", 0, lambda _: setAworld(False), "disable Another World mode (undocumented)")
 arg.addArg("--header", 0, lambda _: setHeader(True), "emit header for bitmap")
 arg.addArg("--no-header", 0, lambda _: setHeader(False), "do not emit header for bitmap")
 arg.setAnonFun(processFile)
