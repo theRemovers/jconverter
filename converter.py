@@ -160,7 +160,7 @@ def optionsToString():
         add("--use-cry-table")
     else:
         add("--compute-cry")
-    if aword:
+    if aworld:
         add("--aworld")
     else:
         add("--no-aworld")
@@ -711,6 +711,8 @@ class Arg:
     def __init__(self):
         self.specList = []
         self.anonFun = lambda x: print("Unknown argument %s" % x)
+        self.addArg("-help", 0, lambda _ : self.showHelp(), "display this help")
+        self.addArg("--help", 0, lambda _ : self.showHelp(), "display this help")
 
     def addArg(self, key, nargs, fun, doc):
         self.specList.append((key, nargs, fun, doc))
@@ -724,19 +726,35 @@ class Arg:
                 return (nargs, fun, doc)
         return None
 
+    def showHelp(self):
+        print("Atari Jaguar Image Converter by Seb/The Removers")
+        print("Default options: %s" % optionsToString())
+        for (kwd, nargs, fun, doc) in self.specList:
+            print("  {0}: {1}".format(kwd, doc))
+
     def parse(self, args):
         i = 0
+        parseSpec = True
         while i < len(args):
             arg = args[i]
             i += 1
-            spec = self.findSpec(arg)
-            if spec:
-                nargs, fun, doc = spec
-                funArgs = args[i: i+nargs]
-                i += nargs
-                fun(funArgs)
-            else:
-                self.anonFun(arg)
+            spec = None
+            if parseSpec and 0 < len(arg):
+                if arg == '--':
+                    parseSpec = False
+                    continue
+                elif arg[0] == '-':
+                    spec = self.findSpec(arg)
+                    if spec:
+                        nargs, fun, doc = spec
+                        funArgs = args[i: i+nargs]
+                        i += nargs
+                        fun(funArgs)
+                        continue
+                    else:
+                        print("Unknown argument %s" % arg)
+                        break
+            self.anonFun(arg)
 
 arg = Arg()
 arg.addArg("-rgb", 0, lambda _: setRgb(True), "rgb16 output format")
