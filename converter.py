@@ -318,12 +318,29 @@ class Rgb24_of_RGB:
     def getPhysicalSize(self):
         return self.image.size
 
+class Rgb24_of_RGBA:
+    def __init__(self, image):
+        assert image.mode == "RGBA"
+        self.image = image
+    def getPixel(self, x, y):
+        w, h = self.getPhysicalSize()
+        if 0 <= x and x < w and 0 <= y and y < h:
+            r, g, b, a = self.image.getpixel((x, y))
+            return (r, g, b)
+        else:
+            return (0, 0, 0)
+    def getPhysicalSize(self):
+        return self.image.size
+
 def asRGB24(image):
     if image.mode == "P":
         return Rgb24_of_P(image)
     elif image.mode == "RGB":
         return Rgb24_of_RGB(image)
+    elif image.mode == "RGBA":
+        return Rgb24_of_RGBA(image)
     else:
+        print("Unsupported image mode %s" % image.mode, file=sys.stderr)
         return None
 
 class CLUT_of_P:
