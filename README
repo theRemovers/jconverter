@@ -92,6 +92,33 @@ camlimages library - http://pauillac.inria.fr/camlimages/
 
 Compilation:
 ------------
+On Linux, install opam, a C toolchain, make, pkg-config, and the
+development files for GIF, JPEG, PNG, TIFF and Xpm. For example, on
+Debian or Ubuntu:
+
+    sudo apt install build-essential git curl opam pkg-config bwrap libgif-dev libjpeg-dev libpng-dev libtiff-dev libxpm-dev
+
+On Arch Linux:
+
+    sudo pacman -S --needed base-devel git curl opam bubblewrap giflib libjpeg-turbo libpng libtiff libxpm
+
+Build the native OCaml converter with:
+
+    ./build-ocaml.sh
+
+The script installs OCaml 5.1.1 and the CamlImages build dependencies
+in an isolated opam root under ${XDG_CACHE_HOME:-$HOME/.cache}/jconverter/opam.
+It reuses that root on subsequent runs. Set JCONVERTER_OPAM_ROOT
+to an absolute path to use another root. CamlImages 5.0.5 is built
+in a temporary directory with position-independent C stubs.
+
+The executable is written to converter.native at the repository root
+by default. Pass an output path as the first argument to change it.
+
+    ./build-ocaml.sh /tmp/converter.native
+
+The historical build instructions follow.
+
 To compile, you need:
 - ocaml
 - ocamlfind
