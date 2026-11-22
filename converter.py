@@ -3,7 +3,6 @@
 import os
 import sys
 import rgb2cry
-import numpy
 import math
 from PIL import Image
 
@@ -178,9 +177,10 @@ def exponent_mantissa(width):
         nb -= 1
     width <<= 1
     exp = nb & 0xf
-    mant = numpy.right_shift(width, 30)
+    # Only the two explicit mantissa bits belong in the flags.
+    mant = (width >> 30) & 0x3
     m = (1 << 2) | mant
-    blitter_width = numpy.right_shift(m << exp, 2)
+    blitter_width = (m << exp) >> 2
     return (exp, mant, blitter_width)
 
 def gen_flags(width, depth):
